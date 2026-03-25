@@ -1,0 +1,34 @@
+# Build outputs
+/build/
+/app/build/
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin
+.kotlin/
+
+# Local config
+local.properties
+*.jks
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
+
+# Local directories
+/_workspaces/
+/_documents/
+/_scripts/
+
+docs/
+openspec/
+
+.claude/
+CLAUDE.md
+
+TODO.md

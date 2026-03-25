@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Back screen (offset upper-right, semi-transparent) -->
+    <path
+        android:fillColor="#80FFFFFF"
+        android:pathData="M9.5,2h8.5c2.21,0 4,1.79 4,4v6c0,2.21 -1.79,4 -4,4h-8.5c-2.21,0 -4,-1.79 -4,-4V6c0,-2.21 1.79,-4 4,-4z" />
+    <!-- Front screen (outline, thick stroke) -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:pathData="M6,8h8.5c2.21,0 4,1.79 4,4v6c0,2.21 -1.79,4 -4,4H6c-2.21,0 -4,-1.79 -4,-4v-6c0,-2.21 1.79,-4 4,-4z" />
+    <!-- Dot top -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,12.5a1.5,1.5 0,1 1,0 3a1.5,1.5 0,1 1,0 -3z" />
+    <!-- Dot bottom -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7,16.5a1.5,1.5 0,1 1,0 3a1.5,1.5 0,1 1,0 -3z" />
+</vector>

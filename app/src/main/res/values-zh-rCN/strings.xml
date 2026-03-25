@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="xposed_description">小米背屏增强模块</string>
+
+    <!-- 导航 -->
+    <string name="nav_home">首页</string>
+    <string name="nav_apps">应用</string>
+    <string name="nav_features">功能</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- 通用 -->
+    <string name="back">返回</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+    <string name="reset_default">恢复默认</string>
+    <string name="loading">获取中</string>
+    <string name="set_failed">设置失败</string>
+    <string name="reset_failed">重置失败</string>
+    <string name="enabled">已开启</string>
+    <string name="disabled">已关闭</string>
+    <string name="reset_done">已恢复默认</string>
+
+    <!-- 状态卡片 -->
+    <string name="module_activated">模块已激活</string>
+    <string name="module_not_activated">模块未激活</string>
+    <string name="module_activated_summary">Hook 工作正常</string>
+    <string name="module_not_activated_summary">请在 LSPosed 中启用模块并勾选背屏</string>
+    <string name="root_ok">Root 权限正常</string>
+    <string name="root_missing">无 Root 权限</string>
+    <string name="root_checking">正在检测 Root…</string>
+    <string name="root_ok_summary">保存后可自动重启背屏</string>
+    <string name="root_missing_summary">请授予 Root 权限</string>
+
+    <!-- 激活页 -->
+    <string name="activation">激活</string>
+
+    <!-- 功能页 -->
+    <string name="disable_tracking">禁止使用统计上报小米</string>
+    <string name="disable_tracking_on">已拦截使用数据上报</string>
+    <string name="disable_tracking_off">正常上报使用数据</string>
+
+    <string name="keep_alive">背屏常亮</string>
+    <string name="keep_alive_notification">背屏常亮服务运行中</string>
+    <string name="keep_alive_notification_text">每 %d 秒唤醒背屏</string>
+    <string name="keep_alive_on">已开启背屏常亮</string>
+    <string name="keep_alive_off">正常超时熄屏</string>
+    <string name="keep_alive_interval">唤醒间隔</string>
+    <string name="keep_alive_interval_value">%d 秒</string>
+    <string name="keep_alive_interval_dialog_summary">输入 1-300 秒</string>
+
+    <string name="rear_dpi">背屏 DPI</string>
+    <string name="rear_dpi_current">当前: %d</string>
+    <string name="set_dpi">设置</string>
+    <string name="dpi_dialog_summary">输入 100-800</string>
+    <string name="dpi_set_success">DPI 已设置为 %d，背屏正在重启</string>
+    <string name="dpi_reset_success">DPI 已重置，背屏正在重启</string>
+    <string name="dpi_input_error">请输入 100-800 之间的 DPI 值</string>
+    <string name="reset">重置</string>
+
+    <!-- 投屏 -->
+    <string name="cast_rotation">投屏旋转</string>
+    <string name="cast_rotation_none">不旋转</string>
+    <string name="cast_rotation_left">向左旋转 90°</string>
+    <string name="cast_rotation_right">向右旋转 90°</string>
+    <string name="cast_keep_alive">投屏时常亮</string>
+    <string name="cast_keep_alive_on">投屏期间保持背屏常亮</string>
+    <string name="cast_keep_alive_off">投屏时背屏正常超时熄屏</string>
+
+    <!-- 磁贴 -->
+    <string name="cast_tile_label">投屏背屏</string>
+    <string name="cast_tile_active">已投屏</string>
+    <string name="cast_tile_failed">失败</string>
+
+    <!-- 应用页 -->
+    <string name="search_apps">搜索应用…</string>
+    <string name="media_tag">媒体</string>
+
+    <!-- 应用功能页 -->
+    <string name="app_feature">功能</string>
+    <string name="add_music_whitelist">添加音乐白名单</string>
+    <string name="whitelist_on">允许显示此应用的音乐信息</string>
+    <string name="whitelist_off">不允许显示此应用的音乐信息</string>
+    <string name="whitelist_added">已添加</string>
+    <string name="whitelist_removed">已移除</string>
+
+    <!-- 设置页 -->
+    <string name="about">关于</string>
+
+    <!-- 关于页 -->
+    <string name="project">项目地址</string>
+    <string name="author">作者主页</string>
+</resources>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Janus</string>
+    <string name="xposed_description">Xiaomi rear screen enhancement module</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_apps">Apps</string>
+    <string name="nav_features">Features</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="reset_default">Reset to Default</string>
+    <string name="loading">Loading</string>
+    <string name="set_failed">Set failed</string>
+    <string name="reset_failed">Reset failed</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+    <string name="reset_done">Reset to default</string>
+
+    <!-- Status Card -->
+    <string name="module_activated">Module Activated</string>
+    <string name="module_not_activated">Module Not Activated</string>
+    <string name="module_activated_summary">Xposed Hook is working</string>
+    <string name="module_not_activated_summary">Enable the module in LSPosed and select Rear Screen Center</string>
+    <string name="root_ok">Root Available</string>
+    <string name="root_missing">No Root Access</string>
+    <string name="root_checking">Checking Root…</string>
+    <string name="root_ok_summary">Auto-restart rear screen after saving</string>
+    <string name="root_missing_summary">Please grant Root access</string>
+
+    <!-- Activation -->
+    <string name="activation">Activation</string>
+
+    <!-- Features -->
+    <string name="disable_tracking">Block Usage Tracking to Xiaomi</string>
+    <string name="disable_tracking_on">Usage data reporting blocked</string>
+    <string name="disable_tracking_off">Usage data reported normally</string>
+
+    <string name="keep_alive">Rear Screen Keep-Alive</string>
+    <string name="keep_alive_notification">Keep-alive service running</string>
+    <string name="keep_alive_notification_text">Waking rear screen every %d seconds</string>
+    <string name="keep_alive_on">Keep-alive enabled</string>
+    <string name="keep_alive_off">Times out normally</string>
+    <string name="keep_alive_interval">Wake Interval</string>
+    <string name="keep_alive_interval_value">%d sec</string>
+    <string name="keep_alive_interval_dialog_summary">Enter 1–300 seconds</string>
+
+    <string name="rear_dpi">Rear Screen DPI</string>
+    <string name="rear_dpi_current">Current: %d</string>
+    <string name="set_dpi">Set</string>
+    <string name="dpi_dialog_summary">Enter 100–800</string>
+    <string name="dpi_set_success">DPI set to %d, restarting rear screen</string>
+    <string name="dpi_reset_success">DPI reset, restarting rear screen</string>
+    <string name="dpi_input_error">Please enter a DPI value between 100 and 800</string>
+    <string name="reset">Reset</string>
+
+    <!-- Cast -->
+    <string name="cast_rotation">Cast Rotation</string>
+    <string name="cast_rotation_none">No rotation</string>
+    <string name="cast_rotation_left">Rotate left 90°</string>
+    <string name="cast_rotation_right">Rotate right 90°</string>
+    <string name="cast_keep_alive">Keep Alive When Casting</string>
+    <string name="cast_keep_alive_on">Keep rear screen awake during casting</string>
+    <string name="cast_keep_alive_off">Rear screen times out normally when casting</string>
+
+    <!-- Tile -->
+    <string name="cast_tile_label">Cast to Rear</string>
+    <string name="cast_tile_active">Casting</string>
+    <string name="cast_tile_failed">Failed</string>
+
+    <!-- Apps -->
+    <string name="search_apps">Search apps…</string>
+    <string name="media_tag">Media</string>
+
+    <!-- App Feature -->
+    <string name="app_feature">Features</string>
+    <string name="add_music_whitelist">Add to Music Whitelist</string>
+    <string name="whitelist_on">Allow showing music info from this app</string>
+    <string name="whitelist_off">Don\'t allow showing music info from this app</string>
+    <string name="whitelist_added">Added</string>
+    <string name="whitelist_removed">Removed</string>
+
+    <!-- Settings -->
+    <string name="about">About</string>
+    <string name="about_janus">Janus</string>
+
+    <!-- About -->
+    <string name="app_version_format">v%s</string>
+    <string name="about_github">GitHub</string>
+    <string name="about_author_name">YunPeng</string>
+    <string name="project">Project Page</string>
+    <string name="author">Author Page</string>
+</resources>
