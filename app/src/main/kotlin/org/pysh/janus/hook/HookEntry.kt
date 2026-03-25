@@ -1,5 +1,6 @@
 package org.pysh.janus.hook
 
+import android.annotation.SuppressLint
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
@@ -116,6 +117,7 @@ class HookEntry : IXposedHookLoadPackage {
         }
     }
 
+    @SuppressLint("BlockedPrivateApi") // Runs in Xposed hook context, not subject to targetSdk restrictions
     private fun hookWallpaperKeepAlive(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
             // Hook SubScreenLauncher.onPause() to prevent MainPanel.A() → widget destruction.
