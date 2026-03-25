@@ -68,6 +68,7 @@ fun FeaturesPage(
     var keepAlive by remember { mutableStateOf(if (!isInPreview) (whitelistManager?.isKeepAliveEnabled() ?: false) else false) }
     var intervalValue by remember { mutableFloatStateOf(whitelistManager?.getKeepAliveInterval()?.toFloat() ?: 10f) }
     var disableTracking by remember { mutableStateOf(whitelistManager?.isTrackingDisabled() ?: false) }
+    var wallpaperKeepAlive by remember { mutableStateOf(whitelistManager?.isWallpaperKeepAlive() ?: false) }
 
     var dpiSliderValue by remember { mutableFloatStateOf(currentDpi?.toFloat() ?: 320f) }
     var castRotation by remember { mutableStateOf(whitelistManager?.getCastRotation() ?: 0) }
@@ -111,6 +112,24 @@ fun FeaturesPage(
                         onCheckedChange = {
                             disableTracking = it
                             whitelistManager?.setTrackingDisabled(it)
+                            Toast.makeText(context, context.getString(if (it) R.string.enabled else R.string.disabled), Toast.LENGTH_SHORT).show()
+                        },
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.padding(bottom = 12.dp)) {
+                    SuperSwitch(
+                        title = stringResource(R.string.wallpaper_keep_alive),
+                        summary = stringResource(if (wallpaperKeepAlive) R.string.wallpaper_keep_alive_on else R.string.wallpaper_keep_alive_off),
+                        checked = wallpaperKeepAlive,
+                        onCheckedChange = {
+                            wallpaperKeepAlive = it
+                            whitelistManager?.setWallpaperKeepAlive(it)
+                            scope.launch {
+                                withContext(Dispatchers.IO) { RootUtils.restartBackScreen() }
+                            }
                             Toast.makeText(context, context.getString(if (it) R.string.enabled else R.string.disabled), Toast.LENGTH_SHORT).show()
                         },
                     )

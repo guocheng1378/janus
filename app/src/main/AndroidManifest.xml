@@ -16,11 +16,18 @@
         <activity
             android:name=".MainActivity"
             android:exported="true">
+        </activity>
+
+        <!-- Launcher alias — toggled by "Hide icon" setting -->
+        <activity-alias
+            android:name=".MainActivityAlias"
+            android:targetActivity=".MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
         <!-- Quick Settings Tile: switch app to rear screen -->
         <service

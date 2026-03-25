@@ -1,5 +1,8 @@
 package org.pysh.janus.ui
 
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.pager.HorizontalPager
@@ -28,7 +31,10 @@ import org.pysh.janus.data.WhitelistManager
 import org.pysh.janus.service.ScreenKeepAliveService
 import org.pysh.janus.util.DisplayUtils
 import org.pysh.janus.util.RootUtils
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.NavigationBar
@@ -42,12 +48,74 @@ import top.yukonga.miuix.kmp.icon.extended.Tune
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
+import kotlin.math.abs
 
 sealed interface Screen : NavKey {
     data object Activation : Screen
     data object Main : Screen
     data object About : Screen
     data class AppFeature(val packageName: String) : Screen
+}
+
+private class MainPagerState(
+    val pagerState: PagerState,
+    private val coroutineScope: CoroutineScope,
+) {
+    var selectedPage by mutableIntStateOf(pagerState.currentPage)
+        private set
+
+    private var isNavigating by mutableStateOf(false)
+    private var navJob: Job? = null
+
+    fun animateToPage(targetIndex: Int) {
+        if (targetIndex == selectedPage) return
+
+        navJob?.cancel()
+
+        selectedPage = targetIndex
+        isNavigating = true
+
+        val distance = abs(targetIndex - pagerState.currentPage).coerceAtLeast(2)
+        val duration = 100 * distance + 100
+        val layoutInfo = pagerState.layoutInfo
+        val pageSize = layoutInfo.pageSize + layoutInfo.pageSpacing
+        val currentDistanceInPages =
+            targetIndex - pagerState.currentPage - pagerState.currentPageOffsetFraction
+        val scrollPixels = currentDistanceInPages * pageSize
+
+        navJob = coroutineScope.launch {
+            val myJob = coroutineContext.job
+            try {
+                pagerState.animateScrollBy(
+                    value = scrollPixels,
+                    animationSpec = tween(easing = EaseInOut, durationMillis = duration),
+                )
+            } finally {
+                if (navJob == myJob) {
+                    isNavigating = false
+                    if (pagerState.currentPage != targetIndex) {
+                        selectedPage = pagerState.currentPage
+                    }
+                }
+            }
+        }
+    }
+
+    fun syncPage() {
+        if (!isNavigating && selectedPage != pagerState.currentPage) {
+            selectedPage = pagerState.currentPage
+        }
+    }
+}
+
+@Composable
+private fun rememberMainPagerState(
+    pagerState: PagerState,
+    coroutineScope: CoroutineScope = rememberCoroutineScope(),
+): MainPagerState {
+    return remember(pagerState, coroutineScope) {
+        MainPagerState(pagerState, coroutineScope)
+    }
 }
 
 @Composable
@@ -65,7 +133,6 @@ fun MainScreen(isModuleActive: Boolean) {
         }
         val backStack = remember { mutableStateListOf<NavKey>(initialScreen) }
 
-        val scope = rememberCoroutineScope()
         var hasRoot by remember { mutableStateOf<Boolean?>(null) }
         var currentDpi by remember { mutableStateOf<Int?>(null) }
 
@@ -100,37 +167,38 @@ fun MainScreen(isModuleActive: Boolean) {
                 }
                 Screen.Main -> NavEntry(key) {
                     val pagerState = rememberPagerState(pageCount = { 4 })
-                    var selectedTab by remember { mutableIntStateOf(0) }
+                    val mainPagerState = rememberMainPagerState(pagerState)
 
-                    PagerBackHandler(pagerState, backStack) {
-                        selectedTab = 0
-                        scope.launch { pagerState.animateScrollToPage(0) }
+                    LaunchedEffect(pagerState.currentPage) {
+                        mainPagerState.syncPage()
                     }
+
+                    PagerBackHandler(mainPagerState, backStack)
 
                     Scaffold(
                         bottomBar = {
                             NavigationBar {
                                 NavigationBarItem(
-                                    selected = selectedTab == 0,
-                                    onClick = { selectedTab = 0; scope.launch { pagerState.animateScrollToPage(0) } },
+                                    selected = mainPagerState.selectedPage == 0,
+                                    onClick = { mainPagerState.animateToPage(0) },
                                     icon = MiuixIcons.Info,
                                     label = stringResource(R.string.nav_home),
                                 )
                                 NavigationBarItem(
-                                    selected = selectedTab == 1,
-                                    onClick = { selectedTab = 1; scope.launch { pagerState.animateScrollToPage(1) } },
+                                    selected = mainPagerState.selectedPage == 1,
+                                    onClick = { mainPagerState.animateToPage(1) },
                                     icon = MiuixIcons.GridView,
                                     label = stringResource(R.string.nav_apps),
                                 )
                                 NavigationBarItem(
-                                    selected = selectedTab == 2,
-                                    onClick = { selectedTab = 2; scope.launch { pagerState.animateScrollToPage(2) } },
+                                    selected = mainPagerState.selectedPage == 2,
+                                    onClick = { mainPagerState.animateToPage(2) },
                                     icon = MiuixIcons.Tune,
                                     label = stringResource(R.string.nav_features),
                                 )
                                 NavigationBarItem(
-                                    selected = selectedTab == 3,
-                                    onClick = { selectedTab = 3; scope.launch { pagerState.animateScrollToPage(3) } },
+                                    selected = mainPagerState.selectedPage == 3,
+                                    onClick = { mainPagerState.animateToPage(3) },
                                     icon = MiuixIcons.Settings,
                                     label = stringResource(R.string.nav_settings),
                                 )
@@ -183,13 +251,12 @@ fun MainScreen(isModuleActive: Boolean) {
 
 @Composable
 private fun PagerBackHandler(
-    pagerState: PagerState,
+    mainPagerState: MainPagerState,
     backStack: List<NavKey>,
-    onBackToHome: () -> Unit,
 ) {
     val isEnabled by remember {
         derivedStateOf {
-            backStack.size == 1 && pagerState.currentPage != 0
+            backStack.size == 1 && mainPagerState.selectedPage != 0
         }
     }
 
@@ -198,6 +265,6 @@ private fun PagerBackHandler(
     NavigationBackHandler(
         state = navEventState,
         isBackEnabled = isEnabled,
-        onBackCompleted = onBackToHome,
+        onBackCompleted = { mainPagerState.animateToPage(0) },
     )
 }

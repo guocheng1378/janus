@@ -40,6 +40,10 @@
     <string name="disable_tracking_on">Usage data reporting blocked</string>
     <string name="disable_tracking_off">Usage data reported normally</string>
 
+    <string name="wallpaper_keep_alive">Live Wallpaper Anti-Interrupt</string>
+    <string name="wallpaper_keep_alive_on">Live wallpaper keeps playing through cover overlay</string>
+    <string name="wallpaper_keep_alive_off">Live wallpaper pauses when cover overlay appears</string>
+
     <string name="keep_alive">Rear Screen Keep-Alive</string>
     <string name="keep_alive_notification">Keep-alive service running</string>
     <string name="keep_alive_notification_text">Waking rear screen every %d seconds</string>
@@ -85,6 +89,11 @@
     <string name="whitelist_removed">Removed</string>
 
     <!-- Settings -->
+    <string name="hide_icon">Hide Launcher Icon</string>
+    <string name="hide_icon_on">Icon hidden from launcher</string>
+    <string name="hide_icon_off">Icon shown in launcher</string>
+    <string name="hide_icon_dialog_title">Hide Launcher Icon?</string>
+    <string name="hide_icon_dialog_summary">After hiding, you can only open this app through the LSPosed module manager.</string>
     <string name="about">About</string>
     <string name="about_janus">Janus</string>
 
@@ -94,4 +103,7 @@
     <string name="about_author_name">YunPeng</string>
     <string name="project">Project Page</string>
     <string name="author">Author Page</string>
+    <string name="qq_group">QQ Group</string>
+    <string name="about_qq_group_number">119655862</string>
+    <string name="qq_group_copied">Group number copied</string>
 </resources>

@@ -17,16 +17,18 @@
 
 ## Introduction
 
-Janus is an LSPosed module for Xiaomi foldable phones, designed to enhance the rear screen experience. By hooking `com.xiaomi.subscreencenter`, it bypasses various system restrictions on the rear screen.
+Janus is an LSPosed module for Xiaomi phones with a rear screen, designed to enhance the rear screen experience. By hooking `com.xiaomi.subscreencenter`, it bypasses various system restrictions on the rear screen.
 
 ## Features
 
 - **Music Whitelist Unlock** — Remove rear screen music app whitelist restrictions, manage whitelist per app
+- **Live Wallpaper Anti-Interrupt** — Prevent live wallpaper from pausing or resetting when rear screen is covered, keep wallpaper playing continuously
 - **Rear Screen DPI Adjustment** — Customize rear screen display density for better small-screen experience
 - **Rear Screen Keep Alive** — Foreground service periodically sends key events to prevent auto-sleep
 - **Screen Casting Settings** — Screen casting rotation control, keep rear screen on during casting
 - **Telemetry Blocking** — Intercept `DailyTrackReceiver` to block data reporting
 - **Quick Switch** — Quick settings tile for one-tap casting to rear screen
+- **Hide Launcher Icon** — Hide app icon from launcher, open via LSPosed module manager
 
 ## Prerequisites
 

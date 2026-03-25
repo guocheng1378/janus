@@ -1,8 +1,15 @@
 package org.pysh.janus.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,6 +51,7 @@ private fun AboutPagePreview() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AboutPage(onBack: () -> Unit) {
     val isInPreview = LocalInspectionMode.current
@@ -136,6 +144,30 @@ fun AboutPage(onBack: () -> Unit) {
                         )
                     },
                 )
+                Box(
+                    modifier = Modifier.combinedClickable(
+                        onClick = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://qm.qq.com/q/UJBp9bNnIQ"))
+                            )
+                        },
+                        onLongClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("qq_group", "119655862"))
+                            Toast.makeText(context, context.getString(R.string.qq_group_copied), Toast.LENGTH_SHORT).show()
+                        },
+                    ),
+                ) {
+                    SuperArrow(
+                        title = stringResource(R.string.qq_group),
+                        endActions = {
+                            Text(
+                                text = stringResource(R.string.about_qq_group_number),
+                                color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                            )
+                        },
+                    )
+                }
             }
         }
     }

@@ -15,6 +15,7 @@ class WhitelistManager(private val context: Context) {
         const val KEY_KEEP_ALIVE_INTERVAL = "keep_alive_interval"
         const val KEY_CAST_ROTATION = "cast_rotation" // 0=none, 1=left, 3=right
         const val KEY_CAST_KEEP_ALIVE = "cast_keep_alive"
+        const val KEY_WALLPAPER_KEEP_ALIVE = "wallpaper_keep_alive"
     }
 
     private val prefs: SharedPreferences = try {
@@ -84,6 +85,15 @@ class WhitelistManager(private val context: Context) {
 
     fun setCastKeepAlive(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_CAST_KEEP_ALIVE, enabled).commit()
+        makePrefsWorldReadable()
+    }
+
+    fun isWallpaperKeepAlive(): Boolean {
+        return prefs.getBoolean(KEY_WALLPAPER_KEEP_ALIVE, false)
+    }
+
+    fun setWallpaperKeepAlive(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_WALLPAPER_KEEP_ALIVE, enabled).commit()
         makePrefsWorldReadable()
     }
 

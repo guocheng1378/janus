@@ -18,6 +18,8 @@ class HookEntry : IXposedHookLoadPackage {
         private const val PREFS_NAME = "janus_config"
         private const val KEY_WHITELIST = "music_whitelist"
         private const val KEY_DISABLE_TRACKING = "disable_tracking"
+        private const val KEY_WALLPAPER_KEEP_ALIVE = "wallpaper_keep_alive"
+        private const val SUB_SCREEN_LAUNCHER = "$TARGET_PACKAGE.SubScreenLauncher"
     }
 
     private val prefs by lazy { XSharedPreferences(SELF_PACKAGE, PREFS_NAME) }
@@ -28,6 +30,7 @@ class HookEntry : IXposedHookLoadPackage {
             TARGET_PACKAGE -> {
                 hookMusicWhitelist(lpparam)
                 hookTracking(lpparam)
+                hookWallpaperKeepAlive(lpparam)
             }
         }
     }
@@ -110,6 +113,53 @@ class HookEntry : IXposedHookLoadPackage {
             XposedBridge.log("[$TAG] Tracking hook installed")
         } catch (e: Throwable) {
             XposedBridge.log("[$TAG] hookTracking failed: ${e.message}")
+        }
+    }
+
+    private fun hookWallpaperKeepAlive(lpparam: XC_LoadPackage.LoadPackageParam) {
+        try {
+            // Hook SubScreenLauncher.onPause() to prevent MainPanel.A() → widget destruction.
+            // onPause triggers: MainPanel.A() → widget cleanup → MamlView.onDestroy()
+            // → ScreenElementRoot destroyed → animation restarts from 0 on resume.
+            // By skipping onPause body, widgets stay alive and animation continues.
+            XposedHelpers.findAndHookMethod(
+                SUB_SCREEN_LAUNCHER,
+                lpparam.classLoader,
+                "onPause",
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        if (!isWallpaperKeepAlive()) return
+                        try {
+                            // Must satisfy Activity lifecycle check to avoid SuperNotCalledException.
+                            // Activity.onPause() sets mCalled=true and calls dispatchActivityPaused().
+                            val activityClass = android.app.Activity::class.java
+                            val dispatchMethod = activityClass.getDeclaredMethod("dispatchActivityPaused")
+                            dispatchMethod.isAccessible = true
+                            dispatchMethod.invoke(param.thisObject)
+                            val mCalledField = activityClass.getDeclaredField("mCalled")
+                            mCalledField.isAccessible = true
+                            mCalledField.setBoolean(param.thisObject, true)
+                        } catch (e: Throwable) {
+                            XposedBridge.log("[$TAG] super.onPause simulation failed: ${e.message}")
+                            return // Let original onPause run to avoid crash
+                        }
+                        param.result = null // Skip SubScreenLauncher.onPause() body
+                        XposedBridge.log("[$TAG] Blocked SubScreenLauncher.onPause → wallpaper kept alive")
+                    }
+                }
+            )
+            XposedBridge.log("[$TAG] Wallpaper keep-alive hook installed on SubScreenLauncher.onPause")
+        } catch (e: Throwable) {
+            XposedBridge.log("[$TAG] hookWallpaperKeepAlive failed: ${e.message}")
+        }
+    }
+
+    private fun isWallpaperKeepAlive(): Boolean {
+        return try {
+            prefs.reload()
+            prefs.getBoolean(KEY_WALLPAPER_KEEP_ALIVE, false)
+        } catch (e: Throwable) {
+            false
         }
     }
 
