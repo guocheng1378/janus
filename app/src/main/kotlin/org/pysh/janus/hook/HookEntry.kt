@@ -20,7 +20,10 @@ class HookEntry : IXposedHookLoadPackage {
         private const val KEY_WHITELIST = "music_whitelist"
         private const val KEY_DISABLE_TRACKING = "disable_tracking"
         private const val KEY_WALLPAPER_KEEP_ALIVE = "wallpaper_keep_alive"
+        private const val KEY_WALLPAPER_LOCK = "wallpaper_lock"
+        private const val WALLPAPER_LONG_PRESS_GESTURE = "Z1.t" // MainPanel long-press-to-edit handler
         private const val SUB_SCREEN_LAUNCHER = "$TARGET_PACKAGE.SubScreenLauncher"
+        private const val JANUS_MRC = "/data/system/theme/rearScreenWhite/janus_custom.mrc"
     }
 
     private val prefs by lazy { XSharedPreferences(SELF_PACKAGE, PREFS_NAME) }
@@ -32,6 +35,8 @@ class HookEntry : IXposedHookLoadPackage {
                 hookMusicWhitelist(lpparam)
                 hookTracking(lpparam)
                 hookWallpaperKeepAlive(lpparam)
+                hookWallpaperLock(lpparam)
+                hookWallpaperPathRedirect(lpparam)
             }
         }
     }
@@ -153,6 +158,67 @@ class HookEntry : IXposedHookLoadPackage {
             XposedBridge.log("[$TAG] Wallpaper keep-alive hook installed on SubScreenLauncher.onPause")
         } catch (e: Throwable) {
             XposedBridge.log("[$TAG] hookWallpaperKeepAlive failed: ${e.message}")
+        }
+    }
+
+    private fun hookWallpaperLock(lpparam: XC_LoadPackage.LoadPackageParam) {
+        // Hook Z1.t.e(MotionEvent) — long-press gesture to enter edit mode.
+        // Blocking edit mode entry is sufficient: swipe-to-switch only works
+        // inside edit mode, so it becomes unreachable.
+        try {
+            XposedHelpers.findAndHookMethod(
+                WALLPAPER_LONG_PRESS_GESTURE, lpparam.classLoader,
+                "e", android.view.MotionEvent::class.java,
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        if (isWallpaperLocked()) {
+                            param.result = false
+                        }
+                    }
+                }
+            )
+            XposedBridge.log("[$TAG] Wallpaper lock hook installed on Z1.t.e")
+        } catch (e: Throwable) {
+            XposedBridge.log("[$TAG] hookWallpaperLock failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Hook Widget.d()（有效路径获取方法），重定向到 Janus 专用 .mrc。
+     * 仅当 Janus 的 janus_custom.mrc 存在时才重定向，不影响原始壁纸。
+     * 同时重定向 configPath 到 Janus editConfig（bgmode=2）。
+     */
+    private fun hookWallpaperPathRedirect(lpparam: XC_LoadPackage.LoadPackageParam) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                "m2.a", lpparam.classLoader, "d",
+                object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        if (param.result == null) return
+                        val janusFile = java.io.File(JANUS_MRC)
+                        if (!janusFile.exists()) return
+
+                        val result = param.result as String
+                        if (result != JANUS_MRC) {
+                            param.result = JANUS_MRC
+                            XposedBridge.log("[$TAG] Redirected wallpaper: $result → $JANUS_MRC")
+                        }
+                        // 不修改 configPath（字段 g），避免被持久化到 widget.json
+                    }
+                }
+            )
+            XposedBridge.log("[$TAG] Wallpaper path redirect hook installed on m2.a.d")
+        } catch (e: Throwable) {
+            XposedBridge.log("[$TAG] hookWallpaperPathRedirect failed: ${e.message}")
+        }
+    }
+
+    private fun isWallpaperLocked(): Boolean {
+        return try {
+            prefs.reload()
+            prefs.getBoolean(KEY_WALLPAPER_LOCK, false)
+        } catch (e: Throwable) {
+            false
         }
     }
 

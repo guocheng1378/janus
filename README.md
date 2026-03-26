@@ -23,6 +23,7 @@ Janus is an LSPosed module for Xiaomi phones with a rear screen, designed to enh
 
 - **Music Whitelist Unlock** — Remove rear screen music app whitelist restrictions, manage whitelist per app
 - **Live Wallpaper Anti-Interrupt** — Prevent live wallpaper from pausing or resetting when rear screen is covered, keep wallpaper playing continuously
+- **Lock Wallpaper Switching** — Block long-press gesture on rear screen wallpaper to prevent accidental wallpaper changes
 - **Custom Rear Wallpaper Video** — Replace AI-generated wallpaper video with your own, with loop playback toggle and backup/restore
 - **Rear Screen DPI Adjustment** — Customize rear screen display density for better small-screen experience
 - **Rear Screen Keep Alive** — Foreground service periodically sends key events to prevent auto-sleep

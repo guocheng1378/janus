@@ -44,11 +44,16 @@
     <string name="wallpaper_keep_alive_on">Live wallpaper keeps playing through cover overlay</string>
     <string name="wallpaper_keep_alive_off">Live wallpaper pauses when cover overlay appears</string>
 
+    <string name="wallpaper_lock">Lock Wallpaper Switching</string>
+    <string name="wallpaper_lock_on">Wallpaper carousel locked, swipe to switch disabled</string>
+    <string name="wallpaper_lock_off">Wallpaper can be switched by swiping</string>
+
     <string name="wp_custom_title">Custom Rear Wallpaper Video</string>
     <string name="wp_not_found">No AI wallpaper found</string>
     <string name="wp_not_found_hint">Generate an AI wallpaper in Theme Manager first</string>
     <string name="wp_ready">Tap to select a video</string>
     <string name="wp_processing">Processing…</string>
+    <string name="wp_create_hint">No AI wallpaper — tap to create one</string>
     <string name="wp_replace_success">Video replaced, rear screen restarting</string>
     <string name="wp_replace_failed">Video replacement failed</string>
     <string name="wp_loop">Loop Playback</string>

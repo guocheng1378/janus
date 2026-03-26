@@ -43,11 +43,16 @@
     <string name="wallpaper_keep_alive_on">遮盖时动态壁纸继续播放</string>
     <string name="wallpaper_keep_alive_off">遮盖时动态壁纸暂停</string>
 
+    <string name="wallpaper_lock">锁定壁纸切换</string>
+    <string name="wallpaper_lock_on">壁纸轮播已锁定，滑动切换无效</string>
+    <string name="wallpaper_lock_off">可通过滑动切换壁纸</string>
+
     <string name="wp_custom_title">自定义背屏壁纸视频</string>
     <string name="wp_not_found">未找到 AI 壁纸</string>
     <string name="wp_not_found_hint">请先在主题商店生成一张 AI 壁纸</string>
     <string name="wp_ready">点击选择视频</string>
     <string name="wp_processing">处理中…</string>
+    <string name="wp_create_hint">未找到 AI 壁纸，点击创建</string>
     <string name="wp_replace_success">视频已替换，背屏正在重启</string>
     <string name="wp_replace_failed">视频替换失败</string>
     <string name="wp_loop">视频循环播放</string>

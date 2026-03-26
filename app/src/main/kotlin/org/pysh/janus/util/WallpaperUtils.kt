@@ -2,7 +2,9 @@ package org.pysh.janus.util
 
 import android.content.Context
 import android.net.Uri
+import android.util.Base64
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.CRC32
@@ -14,6 +16,13 @@ object WallpaperUtils {
 
     private const val RUNTIME_JSON =
         "/data/system/theme_magic/users/0/rearScreen/runtime.json"
+    private const val RUNTIME_DIR =
+        "/data/system/theme_magic/users/0/rearScreen"
+    private const val REAR_SCREEN_WHITE =
+        "/data/system/theme/rearScreenWhite"
+    private const val TEMPLATE_DIR = "wallpaper_template"
+    // Janus 专用路径，不覆盖系统文件
+    private const val JANUS_MRC = "/data/system/theme/rearScreenWhite/janus_custom.mrc"
     private const val AI_MP4_ENTRY = "assets/ai/ai.mp4"
     private const val MANIFEST_ENTRY = "manifest.xml"
     private const val BACKUP_SUFFIX = ".janus_bak"
@@ -69,7 +78,9 @@ object WallpaperUtils {
 
             rebuildZip(workZip, resultZip, userVideo, enableLoop)
 
-            return writeBack(resultZip, paths)
+            if (!writeBack(resultZip, paths)) return false
+            saveToJanusPath(resultZip.absolutePath)
+            return true
         } finally {
             cacheDir.deleteRecursively()
         }
@@ -100,14 +111,197 @@ object WallpaperUtils {
         if (ok) {
             fixOwnership(paths.snapshotPath)
             fixOwnership(paths.localPath)
+            // 删除 Janus 自定义壁纸，让 Hook 停止重定向
+            disableCustomWallpaper()
             RootUtils.restartBackScreen()
         }
         return ok
     }
 
+    /** 删除 Janus 自定义壁纸文件，让 Hook 停止重定向，恢复原始壁纸 */
+    fun disableCustomWallpaper() {
+        RootUtils.exec("rm -f '$JANUS_MRC'")
+    }
+
     fun hasBackup(): Boolean {
         val paths = detectWallpaper() ?: return false
         return RootUtils.exec("test -f '${paths.snapshotPath}$BACKUP_SUFFIX'")
+    }
+
+    /**
+     * 从模板创建全新的 AI 动态壁纸并注入系统。
+     * 当设备没有 AI 壁纸时使用。
+     */
+    fun createAiWallpaper(context: Context, videoUri: Uri, enableLoop: Boolean): Boolean {
+        val cacheDir = ensureCacheDir(context)
+        try {
+            val userVideo = File(cacheDir, "user_video.mp4")
+            context.contentResolver.openInputStream(videoUri)?.use { input ->
+                userVideo.outputStream().use { output -> input.copyTo(output) }
+            } ?: return false
+
+            val mrcFile = buildMrcFromTemplate(context, userVideo, enableLoop) ?: return false
+
+            val json = RootUtils.execWithOutput("cat '$RUNTIME_JSON'") ?: return false
+            val arr = try { JSONArray(json) } catch (_: Exception) { return false }
+
+            // 找 signature 条目作为克隆源
+            var signatureEntry: JSONObject? = null
+            for (i in 0 until arr.length()) {
+                val entry = arr.getJSONObject(i)
+                if (entry.optString("resSubType") != "ai") {
+                    signatureEntry = entry
+                    break
+                }
+            }
+
+            val applyId = System.currentTimeMillis().toString()
+            val resId = signatureEntry?.optString("resId")
+                ?: "janus-${java.util.UUID.randomUUID()}"
+            val snapshotPath = "$REAR_SCREEN_WHITE/rearscreen_${resId}_${applyId}.mrc"
+
+            if (!RootUtils.exec("cp '${mrcFile.absolutePath}' '$snapshotPath'")) return false
+            fixOwnership(snapshotPath)
+
+            // 创建辅助目录
+            val entryDir = "$RUNTIME_DIR/${resId}_$applyId"
+            RootUtils.exec("mkdir -p '$entryDir/editConfig'")
+            RootUtils.exec("mkdir -p '$entryDir/rearScreenScreenshot'")
+            fixOwnership(entryDir)
+            val metaSnapshotPath = "$entryDir/$resId.mrm"
+            val sigMetaSnapshot = signatureEntry?.optString("metaSnapshotPath", "")
+            if (!sigMetaSnapshot.isNullOrEmpty()) {
+                RootUtils.exec("cp '$sigMetaSnapshot' '$metaSnapshotPath'")
+                fixOwnership(metaSnapshotPath)
+            }
+
+            // 构建 AI 条目
+            val aiEntry = buildAiEntry(signatureEntry, resId, applyId, snapshotPath, entryDir, metaSnapshotPath)
+            var maxPosition = 0
+            for (i in 0 until arr.length()) {
+                val pos = arr.getJSONObject(i).optInt("position", 0)
+                if (pos > maxPosition) maxPosition = pos
+            }
+            aiEntry.put("position", maxPosition + 1)
+            arr.put(aiEntry)
+            if (!writeRuntimeJson(arr)) return false
+
+            // 保存到 Janus 专用路径（Hook 重定向目标）
+            saveToJanusPath(mrcFile.absolutePath)
+            RootUtils.restartBackScreen()
+            return true
+        } finally {
+            cacheDir.deleteRecursively()
+        }
+    }
+
+    private fun buildMrcFromTemplate(context: Context, videoFile: File, enableLoop: Boolean): File? {
+        val cacheDir = ensureCacheDir(context)
+        val resultMrc = File(cacheDir, "new_wallpaper.mrc")
+        val assets = context.assets
+        try {
+            ZipOutputStream(FileOutputStream(resultMrc)).use { zos ->
+                fun addAsset(assetPath: String, zipPath: String) {
+                    val children = assets.list(assetPath) ?: return
+                    if (children.isEmpty()) {
+                        // 空目录（如 etc/）跳过，不尝试 open
+                        val content = try {
+                            assets.open(assetPath).use { it.readBytes() }
+                        } catch (_: Exception) { return }
+                        if (zipPath == MANIFEST_ENTRY) {
+                            val modified = modifyLoop(String(content), enableLoop)
+                            zos.putNextEntry(ZipEntry(zipPath))
+                            zos.write(modified.toByteArray())
+                        } else {
+                            zos.putNextEntry(ZipEntry(zipPath))
+                            zos.write(content)
+                        }
+                        zos.closeEntry()
+                    } else {
+                        if (zipPath.isNotEmpty()) {
+                            zos.putNextEntry(ZipEntry("$zipPath/"))
+                            zos.closeEntry()
+                        }
+                        for (child in children) {
+                            addAsset("$assetPath/$child",
+                                if (zipPath.isEmpty()) child else "$zipPath/$child")
+                        }
+                    }
+                }
+                addAsset(TEMPLATE_DIR, "")
+                zos.putNextEntry(storedEntry(AI_MP4_ENTRY, videoFile))
+                videoFile.inputStream().use { it.copyTo(zos) }
+                zos.closeEntry()
+            }
+            return resultMrc
+        } catch (_: Exception) {
+            resultMrc.delete()
+            return null
+        }
+    }
+
+    private fun buildAiEntry(
+        signatureEntry: JSONObject?, resId: String, applyId: String,
+        snapshotPath: String, entryDir: String, metaSnapshotPath: String,
+    ): JSONObject {
+        val now = System.currentTimeMillis()
+        return if (signatureEntry != null) {
+            JSONObject(signatureEntry.toString()).apply {
+                put("resSubType", "ai")
+                put("applyId", applyId)
+                put("applyTime", now)
+                put("updateTime", now)
+                put("resSnapshotPath", snapshotPath)
+                put("resLocalPath", snapshotPath)
+                put("mamlEditConfigPath", "$entryDir/editConfig")
+                put("metaSnapshotPath", metaSnapshotPath)
+                put("snapshotPreviewPath", "$entryDir/rearScreenScreenshot")
+                put("editable", true)
+                put("isDownload", true)
+            }
+        } else {
+            JSONObject().apply {
+                put("resType", "signature")
+                put("resSubType", "ai")
+                put("resId", resId)
+                put("applyId", applyId)
+                put("applyTime", now)
+                put("updateTime", now)
+                put("resSnapshotPath", snapshotPath)
+                put("resLocalPath", snapshotPath)
+                put("resName", """{"zh_CN":"Janus 壁纸","en_US":"Janus Wallpaper","fallback":"Janus Wallpaper"}""")
+                put("resDescription", """{"zh_CN":"","en_US":"","fallback":""}""")
+                put("resDesigner", """{"zh_CN":"Janus","en_US":"Janus","fallback":"Janus"}""")
+                put("resTypeName", """{"zh_CN":"壁纸与签名","en_US":"Wallpapers and signatures","fallback":"壁纸与签名"}""")
+                put("resPreviewPath", "")
+                put("metaPath", "")
+                put("metaSnapshotPath", metaSnapshotPath)
+                put("rightPath", "")
+                put("mamlEditConfigPath", "$entryDir/editConfig")
+                put("snapshotPreviewPath", "$entryDir/rearScreenScreenshot")
+                put("editable", true)
+                put("isDownload", true)
+                put("isNFC", false)
+                put("isThirdParties", false)
+                put("supportAon", false)
+                put("priority", Int.MAX_VALUE)
+                put("onlineInfo", JSONObject().apply {
+                    put("isOnlineResource", false)
+                    put("onlineId", "")
+                })
+            }
+        }
+    }
+
+    private fun writeRuntimeJson(arr: JSONArray): Boolean {
+        val tmpFile = "/data/local/tmp/janus_runtime.json"
+        val b64 = Base64.encodeToString(arr.toString().toByteArray(), Base64.NO_WRAP)
+        if (!RootUtils.exec("echo '$b64' | base64 -d > '$tmpFile'")) return false
+        if (!RootUtils.exec("cp '$tmpFile' '$RUNTIME_JSON'")) return false
+        fixOwnership(RUNTIME_JSON)
+        RootUtils.exec("chmod 777 '$RUNTIME_JSON'")
+        RootUtils.exec("rm -f '$tmpFile'")
+        return true
     }
 
     private fun ensureCacheDir(context: Context): File {
@@ -133,14 +327,27 @@ object WallpaperUtils {
 
     private fun writeBack(resultZip: File, paths: WallpaperPaths): Boolean {
         val src = resultZip.absolutePath
-        // 快照是关键路径（subscreencenter 实际读取），必须成功
         if (!RootUtils.exec("cp '$src' '${paths.snapshotPath}'")) return false
         fixOwnership(paths.snapshotPath)
-        // localPath 是同步副本，失败不影响生效
         RootUtils.exec("cp '$src' '${paths.localPath}'")
         fixOwnership(paths.localPath)
+        // 仅在 janus_custom.mrc 已存在时同步更新（如循环设置变更）
+        // 不主动创建——创建由 replaceVideo/createAiWallpaper 显式调用 saveToJanusPath
+        if (RootUtils.exec("test -f '$JANUS_MRC'")) {
+            RootUtils.exec("cp '$src' '$JANUS_MRC'")
+            fixOwnership(JANUS_MRC)
+        }
         RootUtils.restartBackScreen()
         return true
+    }
+
+    /**
+     * 将 .mrc 保存到 Janus 专用路径，并创建 editConfig（bgmode=2）。
+     * Hook 会将 subscreencenter 重定向到此路径。不修改任何系统壁纸文件。
+     */
+    private fun saveToJanusPath(src: String) {
+        RootUtils.exec("cp '$src' '$JANUS_MRC'")
+        fixOwnership(JANUS_MRC)
     }
 
     private fun fixOwnership(path: String) {

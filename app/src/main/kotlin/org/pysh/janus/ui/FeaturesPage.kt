@@ -78,6 +78,7 @@ fun FeaturesPage(
     var dpiSliderValue by remember { mutableFloatStateOf(currentDpi?.toFloat() ?: 320f) }
     var castRotation by remember { mutableStateOf(whitelistManager?.getCastRotation() ?: 0) }
     var castKeepAlive by remember { mutableStateOf(whitelistManager?.isCastKeepAlive() ?: false) }
+    var wallpaperLock by remember { mutableStateOf(whitelistManager?.isWallpaperLocked() ?: false) }
     var wallpaperLoop by remember { mutableStateOf(whitelistManager?.isWallpaperLoop() ?: false) }
     var hasWallpaper by remember { mutableStateOf(false) }
     var hasWpBackup by remember { mutableStateOf(false) }
@@ -104,9 +105,12 @@ fun FeaturesPage(
         isWpProcessing = true
         scope.launch {
             val success = withContext(Dispatchers.IO) {
+                // 先尝试替换，失败则自动创建（AI 条目可能被主题商店删除）
                 WallpaperUtils.replaceVideo(context, uri, wallpaperLoop)
+                    || WallpaperUtils.createAiWallpaper(context, uri, wallpaperLoop)
             }
             isWpProcessing = false
+            if (success && !hasWallpaper) hasWallpaper = true
             hasWpBackup = withContext(Dispatchers.IO) { WallpaperUtils.hasBackup() }
             Toast.makeText(
                 context,
@@ -176,6 +180,16 @@ fun FeaturesPage(
                             Toast.makeText(context, context.getString(if (it) R.string.enabled else R.string.disabled), Toast.LENGTH_SHORT).show()
                         },
                     )
+                    SuperSwitch(
+                        title = stringResource(R.string.wallpaper_lock),
+                        summary = stringResource(if (wallpaperLock) R.string.wallpaper_lock_on else R.string.wallpaper_lock_off),
+                        checked = wallpaperLock,
+                        onCheckedChange = {
+                            wallpaperLock = it
+                            whitelistManager?.setWallpaperLocked(it)
+                            Toast.makeText(context, context.getString(if (it) R.string.enabled else R.string.disabled), Toast.LENGTH_SHORT).show()
+                        },
+                    )
                 }
             }
 
@@ -186,19 +200,15 @@ fun FeaturesPage(
                         summary = stringResource(
                             when {
                                 isWpProcessing -> R.string.wp_processing
-                                !hasWallpaper -> R.string.wp_not_found
+                                !hasWallpaper -> R.string.wp_create_hint
                                 else -> R.string.wp_ready
                             }
                         ),
                         onClick = {
-                            if (!hasWallpaper) {
-                                Toast.makeText(context, context.getString(R.string.wp_not_found_hint), Toast.LENGTH_LONG).show()
-                                return@SuperArrow
-                            }
                             if (isWpProcessing) return@SuperArrow
                             videoPicker.launch(arrayOf("video/*"))
                         },
-                        enabled = hasWallpaper && !isWpProcessing,
+                        enabled = !isWpProcessing,
                     )
                     SuperSwitch(
                         title = stringResource(R.string.wp_loop),
@@ -224,33 +234,32 @@ fun FeaturesPage(
                         },
                         enabled = hasWallpaper && !isWpProcessing,
                     )
-                    if (hasWpBackup) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp),
-                        ) {
-                            TextButton(
-                                text = stringResource(R.string.wp_restore),
-                                onClick = {
-                                    isWpProcessing = true
-                                    scope.launch {
-                                        val success = withContext(Dispatchers.IO) {
-                                            WallpaperUtils.restoreBackup()
-                                        }
-                                        isWpProcessing = false
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(if (success) R.string.wp_restore_success else R.string.set_failed),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp),
+                    ) {
+                        TextButton(
+                            text = stringResource(R.string.wp_restore),
+                            onClick = {
+                                isWpProcessing = true
+                                scope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        WallpaperUtils.disableCustomWallpaper()
+                                        RootUtils.restartBackScreen()
                                     }
-                                },
-                                modifier = Modifier.weight(1f),
-                                enabled = !isWpProcessing,
-                            )
-                        }
+                                    isWpProcessing = false
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.wp_restore_success),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = !isWpProcessing,
+                        )
                     }
                 }
             }
