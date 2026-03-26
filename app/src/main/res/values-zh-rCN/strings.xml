@@ -43,6 +43,20 @@
     <string name="wallpaper_keep_alive_on">遮盖时动态壁纸继续播放</string>
     <string name="wallpaper_keep_alive_off">遮盖时动态壁纸暂停</string>
 
+    <string name="wp_custom_title">自定义背屏壁纸视频</string>
+    <string name="wp_not_found">未找到 AI 壁纸</string>
+    <string name="wp_not_found_hint">请先在主题商店生成一张 AI 壁纸</string>
+    <string name="wp_ready">点击选择视频</string>
+    <string name="wp_processing">处理中…</string>
+    <string name="wp_replace_success">视频已替换，背屏正在重启</string>
+    <string name="wp_replace_failed">视频替换失败</string>
+    <string name="wp_loop">视频循环播放</string>
+    <string name="wp_loop_on">视频持续循环播放</string>
+    <string name="wp_loop_off">视频播放一次后停止</string>
+    <string name="wp_loop_applied">循环设置已应用，背屏正在重启</string>
+    <string name="wp_restore">恢复原始壁纸</string>
+    <string name="wp_restore_success">已恢复原始壁纸，背屏正在重启</string>
+
     <string name="keep_alive">背屏常亮</string>
     <string name="keep_alive_notification">背屏常亮服务运行中</string>
     <string name="keep_alive_notification_text">每 %d 秒唤醒背屏</string>
@@ -101,4 +115,10 @@
     <string name="qq_group">QQ 群</string>
     <string name="about_qq_group_number">119655862</string>
     <string name="qq_group_copied">群号已复制</string>
+
+    <!-- 更新通告 -->
+    <string name="update_title">v%s 更新内容</string>
+    <string name="update_changelog">添加自定义背屏的视频壁纸功能\n（替换最新生成的 AI 视频壁纸）\n添加背屏视频壁纸循环播放开关</string>
+    <string name="update_join_group">加入 QQ 群</string>
+    <string name="update_dismiss">知道了</string>
 </resources>

@@ -44,6 +44,20 @@
     <string name="wallpaper_keep_alive_on">Live wallpaper keeps playing through cover overlay</string>
     <string name="wallpaper_keep_alive_off">Live wallpaper pauses when cover overlay appears</string>
 
+    <string name="wp_custom_title">Custom Rear Wallpaper Video</string>
+    <string name="wp_not_found">No AI wallpaper found</string>
+    <string name="wp_not_found_hint">Generate an AI wallpaper in Theme Manager first</string>
+    <string name="wp_ready">Tap to select a video</string>
+    <string name="wp_processing">Processing…</string>
+    <string name="wp_replace_success">Video replaced, rear screen restarting</string>
+    <string name="wp_replace_failed">Video replacement failed</string>
+    <string name="wp_loop">Loop Playback</string>
+    <string name="wp_loop_on">Video plays in a continuous loop</string>
+    <string name="wp_loop_off">Video plays once then stops</string>
+    <string name="wp_loop_applied">Loop setting applied, rear screen restarting</string>
+    <string name="wp_restore">Restore Original</string>
+    <string name="wp_restore_success">Original wallpaper restored, rear screen restarting</string>
+
     <string name="keep_alive">Rear Screen Keep-Alive</string>
     <string name="keep_alive_notification">Keep-alive service running</string>
     <string name="keep_alive_notification_text">Waking rear screen every %d seconds</string>
@@ -106,4 +120,10 @@
     <string name="qq_group">QQ Group</string>
     <string name="about_qq_group_number">119655862</string>
     <string name="qq_group_copied">Group number copied</string>
+
+    <!-- Update Dialog -->
+    <string name="update_title">What\'s New in v%s</string>
+    <string name="update_changelog">Custom rear screen video wallpaper\n(replaces the latest generated AI video wallpaper)\nRear screen video wallpaper loop playback toggle</string>
+    <string name="update_join_group">Join QQ Group</string>
+    <string name="update_dismiss">Got it</string>
 </resources>

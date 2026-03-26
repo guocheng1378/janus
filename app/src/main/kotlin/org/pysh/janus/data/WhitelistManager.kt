@@ -16,6 +16,8 @@ class WhitelistManager(private val context: Context) {
         const val KEY_CAST_ROTATION = "cast_rotation" // 0=none, 1=left, 3=right
         const val KEY_CAST_KEEP_ALIVE = "cast_keep_alive"
         const val KEY_WALLPAPER_KEEP_ALIVE = "wallpaper_keep_alive"
+        const val KEY_WALLPAPER_LOOP = "wallpaper_loop"
+        const val KEY_LAST_SEEN_VERSION = "last_seen_version"
     }
 
     private val prefs: SharedPreferences = try {
@@ -95,6 +97,22 @@ class WhitelistManager(private val context: Context) {
     fun setWallpaperKeepAlive(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_WALLPAPER_KEEP_ALIVE, enabled).commit()
         makePrefsWorldReadable()
+    }
+
+    fun isWallpaperLoop(): Boolean {
+        return prefs.getBoolean(KEY_WALLPAPER_LOOP, false)
+    }
+
+    fun setWallpaperLoop(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_WALLPAPER_LOOP, enabled).commit()
+    }
+
+    fun getLastSeenVersion(): Int {
+        return prefs.getInt(KEY_LAST_SEEN_VERSION, 0)
+    }
+
+    fun setLastSeenVersion(versionCode: Int) {
+        prefs.edit().putInt(KEY_LAST_SEEN_VERSION, versionCode).commit()
     }
 
     fun saveWhitelist(packages: Set<String>) {

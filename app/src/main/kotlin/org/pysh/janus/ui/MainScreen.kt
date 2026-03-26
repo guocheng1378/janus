@@ -37,6 +37,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.pysh.janus.BuildConfig
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -135,6 +136,11 @@ fun MainScreen(isModuleActive: Boolean) {
 
         var hasRoot by remember { mutableStateOf<Boolean?>(null) }
         var currentDpi by remember { mutableStateOf<Int?>(null) }
+        var showUpdateDialog by remember {
+            mutableStateOf(
+                BuildConfig.DEBUG || whitelistManager.getLastSeenVersion() < BuildConfig.VERSION_CODE
+            )
+        }
 
         LaunchedEffect(Unit) {
             hasRoot = withContext(Dispatchers.IO) { RootUtils.hasRoot() }
@@ -216,6 +222,11 @@ fun MainScreen(isModuleActive: Boolean) {
                                     bottomPadding = paddingValues.calculateBottomPadding(),
                                     isModuleActive = isModuleActive,
                                     hasRoot = hasRoot,
+                                    showUpdateDialog = showUpdateDialog,
+                                    onDismissUpdateDialog = {
+                                        showUpdateDialog = false
+                                        whitelistManager.setLastSeenVersion(BuildConfig.VERSION_CODE)
+                                    },
                                 )
                                 1 -> AppsPage(
                                     bottomPadding = paddingValues.calculateBottomPadding(),
@@ -233,6 +244,7 @@ fun MainScreen(isModuleActive: Boolean) {
                             }
                         }
                     }
+
                 }
                 Screen.About -> NavEntry(key) {
                     AboutPage(onBack = { backStack.removeLastOrNull() })
@@ -246,6 +258,7 @@ fun MainScreen(isModuleActive: Boolean) {
                 else -> NavEntry(key) {}
             }
         }
+
     }
 }
 
