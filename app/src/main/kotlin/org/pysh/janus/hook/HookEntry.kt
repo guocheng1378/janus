@@ -17,15 +17,18 @@ class HookEntry : IXposedHookLoadPackage {
         private const val TARGET_CLASS = "p2.a"
         private const val SELF_PACKAGE = "org.pysh.janus"
         private const val PREFS_NAME = "janus_config"
-        private const val KEY_WHITELIST = "music_whitelist"
-        private const val KEY_DISABLE_TRACKING = "disable_tracking"
-        private const val KEY_WALLPAPER_KEEP_ALIVE = "wallpaper_keep_alive"
-        private const val KEY_WALLPAPER_LOCK = "wallpaper_lock"
         private const val WALLPAPER_LONG_PRESS_GESTURE = "Z1.t" // MainPanel long-press-to-edit handler
         private const val SUB_SCREEN_LAUNCHER = "$TARGET_PACKAGE.SubScreenLauncher"
         private const val JANUS_MRC = "/data/system/theme/rearScreenWhite/janus_custom.mrc"
+        private const val CONFIG_DIR =
+            "/data/system/theme_magic/users/0/subscreencenter/config"
+        private const val WHITELIST_FLAG = "$CONFIG_DIR/janus_whitelist"
+        private const val TRACKING_FLAG = "$CONFIG_DIR/janus_tracking_disabled"
+        private const val WALLPAPER_KEEP_ALIVE_FLAG = "$CONFIG_DIR/janus_wallpaper_keep_alive"
+        private const val WALLPAPER_LOCK_FLAG = "$CONFIG_DIR/janus_wallpaper_lock"
     }
 
+    @Suppress("DEPRECATION")
     private val prefs by lazy { XSharedPreferences(SELF_PACKAGE, PREFS_NAME) }
 
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -215,39 +218,25 @@ class HookEntry : IXposedHookLoadPackage {
     }
 
     private fun isWallpaperLocked(): Boolean {
-        return try {
-            prefs.reload()
-            prefs.getBoolean(KEY_WALLPAPER_LOCK, false)
-        } catch (e: Throwable) {
-            false
-        }
+        return java.io.File(WALLPAPER_LOCK_FLAG).exists()
     }
 
     private fun isWallpaperKeepAlive(): Boolean {
-        return try {
-            prefs.reload()
-            prefs.getBoolean(KEY_WALLPAPER_KEEP_ALIVE, false)
-        } catch (e: Throwable) {
-            false
-        }
+        return java.io.File(WALLPAPER_KEEP_ALIVE_FLAG).exists()
     }
 
     private fun isTrackingDisabled(): Boolean {
-        return try {
-            prefs.reload()
-            prefs.getBoolean(KEY_DISABLE_TRACKING, false)
-        } catch (e: Throwable) {
-            false
-        }
+        return java.io.File(TRACKING_FLAG).exists()
     }
 
     private fun getCustomWhitelist(): Set<String> {
         return try {
-            prefs.reload()
-            val raw = prefs.getString(KEY_WHITELIST, "") ?: ""
-            raw.split(",").filter { it.isNotBlank() }.toSet()
+            val file = java.io.File(WHITELIST_FLAG)
+            if (!file.exists()) return emptySet()
+            val raw = file.readText().trim()
+            if (raw.isEmpty()) emptySet() else raw.split(",").filter { it.isNotBlank() }.toSet()
         } catch (e: Throwable) {
-            XposedBridge.log("[$TAG] Failed to read whitelist: ${e.message}")
+            XposedBridge.log("[$TAG] Failed to read whitelist file: ${e.message}")
             emptySet()
         }
     }

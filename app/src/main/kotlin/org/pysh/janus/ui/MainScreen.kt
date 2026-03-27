@@ -164,6 +164,10 @@ fun MainScreen(isModuleActive: Boolean) {
                 mediaApps = scanner.scanMediaApps()
                 allApps = scanner.scanAllApps()
             }
+            // 同步已有配置到文件标志位（XSharedPreferences 不可用，Hook 端依赖文件）
+            if (hasRoot == true) {
+                withContext(Dispatchers.IO) { whitelistManager.syncAllFlags() }
+            }
             // 恢复常亮服务
             if (whitelistManager.isKeepAliveEnabled() && !ScreenKeepAliveService.isRunning) {
                 ScreenKeepAliveService.start(context, whitelistManager.getKeepAliveInterval())

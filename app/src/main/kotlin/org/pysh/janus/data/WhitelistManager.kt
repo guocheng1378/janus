@@ -20,8 +20,13 @@ class WhitelistManager(private val context: Context) {
         const val KEY_WALLPAPER_LOOP = "wallpaper_loop"
         const val KEY_WEATHER_CARD_ENABLED = "weather_card_enabled"
         const val KEY_LAST_SEEN_VERSION = "last_seen_version"
-        const val WEATHER_FLAG_PATH =
-            "/data/system/theme_magic/users/0/subscreencenter/config/janus_weather"
+        private const val CONFIG_DIR =
+            "/data/system/theme_magic/users/0/subscreencenter/config"
+        const val WEATHER_FLAG_PATH = "$CONFIG_DIR/janus_weather"
+        const val WHITELIST_FLAG_PATH = "$CONFIG_DIR/janus_whitelist"
+        const val TRACKING_FLAG_PATH = "$CONFIG_DIR/janus_tracking_disabled"
+        const val WALLPAPER_KEEP_ALIVE_FLAG_PATH = "$CONFIG_DIR/janus_wallpaper_keep_alive"
+        const val WALLPAPER_LOCK_FLAG_PATH = "$CONFIG_DIR/janus_wallpaper_lock"
         const val NOTIFICATION_WIDGET_JSON =
             "/data/system/theme_magic/users/0/subscreencenter/notification/notification_widget.json"
     }
@@ -58,6 +63,7 @@ class WhitelistManager(private val context: Context) {
     fun setTrackingDisabled(disabled: Boolean) {
         prefs.edit().putBoolean(KEY_DISABLE_TRACKING, disabled).commit()
         makePrefsWorldReadable()
+        syncBooleanFlag(TRACKING_FLAG_PATH, disabled)
     }
 
     fun isKeepAliveEnabled(): Boolean {
@@ -103,6 +109,7 @@ class WhitelistManager(private val context: Context) {
     fun setWallpaperKeepAlive(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_WALLPAPER_KEEP_ALIVE, enabled).commit()
         makePrefsWorldReadable()
+        syncBooleanFlag(WALLPAPER_KEEP_ALIVE_FLAG_PATH, enabled)
     }
 
     fun isWallpaperLocked(): Boolean {
@@ -112,6 +119,7 @@ class WhitelistManager(private val context: Context) {
     fun setWallpaperLocked(locked: Boolean) {
         prefs.edit().putBoolean(KEY_WALLPAPER_LOCK, locked).commit()
         makePrefsWorldReadable()
+        syncBooleanFlag(WALLPAPER_LOCK_FLAG_PATH, locked)
     }
 
     fun isWallpaperLoop(): Boolean {
@@ -176,6 +184,38 @@ class WhitelistManager(private val context: Context) {
             .putString(KEY_WHITELIST, packages.joinToString(","))
             .commit()
         makePrefsWorldReadable()
+        syncWhitelistFlag(packages)
+    }
+
+    private fun syncWhitelistFlag(packages: Set<String>) {
+        if (packages.isEmpty()) {
+            org.pysh.janus.util.RootUtils.exec("rm -f $WHITELIST_FLAG_PATH")
+        } else {
+            // Write to app-private tmp then root-copy to system path (avoids shell escaping)
+            val tmp = File(context.cacheDir, "wl_tmp.txt")
+            tmp.writeText(packages.joinToString(","))
+            org.pysh.janus.util.RootUtils.exec(
+                "cp ${tmp.absolutePath} $WHITELIST_FLAG_PATH && chmod 644 $WHITELIST_FLAG_PATH"
+            )
+            tmp.delete()
+        }
+    }
+
+    /** Sync all SP settings to file flags so the hook side can read them. */
+    fun syncAllFlags() {
+        syncWhitelistFlag(getWhitelist())
+        syncBooleanFlag(TRACKING_FLAG_PATH, isTrackingDisabled())
+        syncBooleanFlag(WALLPAPER_KEEP_ALIVE_FLAG_PATH, isWallpaperKeepAlive())
+        syncBooleanFlag(WALLPAPER_LOCK_FLAG_PATH, isWallpaperLocked())
+        // Weather flag is managed by setWeatherCardEnabled() separately
+    }
+
+    private fun syncBooleanFlag(path: String, enabled: Boolean) {
+        if (enabled) {
+            org.pysh.janus.util.RootUtils.exec("touch $path && chmod 644 $path")
+        } else {
+            org.pysh.janus.util.RootUtils.exec("rm -f $path")
+        }
     }
 
     /**
