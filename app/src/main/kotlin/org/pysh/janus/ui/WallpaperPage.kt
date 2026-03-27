@@ -51,6 +51,7 @@ private fun WallpaperPagePreview() {
     }
 }
 
+@Suppress("LocalContextGetResourceValueCall")
 @Composable
 fun WallpaperPage(onBack: () -> Unit) {
     val isInPreview = LocalInspectionMode.current
