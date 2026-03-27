@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,10 +28,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -40,12 +39,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import org.pysh.janus.R
 import org.pysh.janus.data.MediaAppInfo
-import org.pysh.janus.data.MediaAppScanner
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import org.pysh.janus.data.WhitelistManager
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Text
@@ -54,42 +52,48 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.MiuixIcons.Basic
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.overScrollVertical
 
 @Preview(showBackground = true)
 @Composable
 private fun AppsPagePreview() {
     MiuixTheme {
-        AppsPage(bottomPadding = 0.dp, onAppClick = {})
+        AppsPage(
+            bottomPadding = 0.dp,
+            whitelistVersion = 0,
+            allApps = emptyList(),
+            mediaApps = emptyList(),
+            isRefreshing = false,
+            onRefresh = {},
+            onAppClick = {},
+        )
     }
 }
 
 @Composable
 fun AppsPage(
     bottomPadding: Dp,
+    whitelistVersion: Int,
+    allApps: List<MediaAppInfo>,
+    mediaApps: List<MediaAppInfo>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     onAppClick: (MediaAppInfo) -> Unit,
 ) {
     val isInPreview = LocalInspectionMode.current
     val context = LocalContext.current
-    val scanner = remember { if (!isInPreview) MediaAppScanner(context) else null }
-    val mediaApps = remember { scanner?.scanMediaApps() ?: emptyList() }
+    val whitelistManager = remember { if (!isInPreview) WhitelistManager(context) else null }
 
     var searchQuery by remember { mutableStateOf("") }
 
-    var allApps by remember { mutableStateOf(emptyList<MediaAppInfo>()) }
-    LaunchedEffect(Unit) {
-        allApps = if (scanner != null) {
-            withContext(Dispatchers.IO) { scanner.scanAllApps() }
-        } else {
-            emptyList()
-        }
+    val whitelist = remember(whitelistVersion) {
+        whitelistManager?.getWhitelist() ?: emptySet()
     }
 
-    val baseList = run {
-        val mediaPackages = mediaApps.map { it.packageName }.toSet()
+    val baseList = remember(allApps, mediaApps, whitelist) {
+        val mediaPackages = mediaApps.mapTo(HashSet()) { it.packageName }
         allApps.map { app ->
             app.copy(isMediaApp = app.packageName in mediaPackages)
-        }
+        }.sortedByDescending { it.packageName in whitelist }
     }
 
     val filteredApps = remember(baseList, searchQuery) {
@@ -116,7 +120,7 @@ fun AppsPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding())
+                .padding(top = innerPadding.calculateTopPadding()),
         ) {
             SearchBar(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -134,19 +138,25 @@ fun AppsPage(
                 onExpandedChange = {},
             ) {}
 
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .overScrollVertical()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(bottom = bottomPadding),
-                overscrollEffect = null,
+            PullToRefresh(
+                modifier = Modifier.weight(1f),
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
+                topAppBarScrollBehavior = scrollBehavior,
             ) {
-                items(filteredApps, key = { it.packageName }) { app ->
-                    AppListItem(
-                        app = app,
-                        onClick = { onAppClick(app) },
-                    )
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = bottomPadding),
+                ) {
+                    items(filteredApps, key = { it.packageName }) { app ->
+                        val cachedIcon = remember(app.packageName) { app.icon }
+                        AppListItem(
+                            appName = app.appName,
+                            packageName = app.packageName,
+                            icon = cachedIcon,
+                            isMediaApp = app.isMediaApp,
+                            onClick = { onAppClick(app) },
+                        )
+                    }
                 }
             }
         }
@@ -155,31 +165,35 @@ fun AppsPage(
 
 @Composable
 private fun AppListItem(
-    app: MediaAppInfo,
+    appName: String,
+    packageName: String,
+    icon: Drawable,
+    isMediaApp: Boolean,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .semantics(mergeDescendants = true) {}
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(drawable = app.icon, size = 48, contentDescription = app.appName)
+        AppIcon(drawable = icon, size = 48, contentDescription = appName)
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = app.appName,
+                text = appName,
                 style = MiuixTheme.textStyles.headline2,
                 fontWeight = FontWeight.Medium,
                 color = MiuixTheme.colorScheme.onBackground,
             )
             Text(
-                text = app.packageName,
+                text = packageName,
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
             )
-            if (app.isMediaApp) {
+            if (isMediaApp) {
                 Spacer(modifier = Modifier.height(4.dp))
                 MediaTag()
             }

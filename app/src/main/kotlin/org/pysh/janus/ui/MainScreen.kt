@@ -3,12 +3,15 @@ package org.pysh.janus.ui
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -22,11 +25,14 @@ import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.ui.res.stringResource
 import org.pysh.janus.R
+import org.pysh.janus.data.MediaAppInfo
+import org.pysh.janus.data.MediaAppScanner
 import org.pysh.janus.data.WhitelistManager
 import org.pysh.janus.service.ScreenKeepAliveService
 import org.pysh.janus.util.DisplayUtils
@@ -55,6 +61,7 @@ sealed interface Screen : NavKey {
     data object Activation : Screen
     data object Main : Screen
     data object About : Screen
+    data object Wallpaper : Screen
     data class AppFeature(val packageName: String) : Screen
 }
 
@@ -127,6 +134,7 @@ fun MainScreen(isModuleActive: Boolean) {
 
     MiuixTheme(controller = controller) {
         val context = LocalContext.current
+        val scope = rememberCoroutineScope()
         val whitelistManager = remember { WhitelistManager(context) }
 
         val initialScreen = remember {
@@ -136,6 +144,13 @@ fun MainScreen(isModuleActive: Boolean) {
 
         var hasRoot by remember { mutableStateOf<Boolean?>(null) }
         var currentDpi by remember { mutableStateOf<Int?>(null) }
+        var whitelistVersion by remember { mutableIntStateOf(0) }
+
+        // App list cached at MainScreen level — survives NavDisplay entry recreation
+        val scanner = remember { MediaAppScanner(context) }
+        var mediaApps by remember { mutableStateOf(emptyList<MediaAppInfo>()) }
+        var allApps by remember { mutableStateOf(emptyList<MediaAppInfo>()) }
+        var appsLoading by remember { mutableStateOf(false) }
         var showUpdateDialog by remember {
             mutableStateOf(
                 BuildConfig.DEBUG || whitelistManager.getLastSeenVersion() < BuildConfig.VERSION_CODE
@@ -145,6 +160,10 @@ fun MainScreen(isModuleActive: Boolean) {
         LaunchedEffect(Unit) {
             hasRoot = withContext(Dispatchers.IO) { RootUtils.hasRoot() }
             currentDpi = withContext(Dispatchers.IO) { DisplayUtils.getRearDpi() }
+            withContext(Dispatchers.IO) {
+                mediaApps = scanner.scanMediaApps()
+                allApps = scanner.scanAllApps()
+            }
             // 恢复常亮服务
             if (whitelistManager.isKeepAliveEnabled() && !ScreenKeepAliveService.isRunning) {
                 ScreenKeepAliveService.start(context, whitelistManager.getKeepAliveInterval())
@@ -163,6 +182,9 @@ fun MainScreen(isModuleActive: Boolean) {
         NavDisplay(
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },
+            entryDecorators = listOf(
+                rememberSaveableStateHolderNavEntryDecorator(),
+            ),
         ) { key ->
             when (key) {
                 Screen.Activation -> NavEntry(key) {
@@ -212,11 +234,24 @@ fun MainScreen(isModuleActive: Boolean) {
                         },
                         contentWindowInsets = WindowInsets.systemBars,
                     ) { paddingValues ->
+                        // When a secondary screen (AppFeature, Wallpaper, About) is
+                        // pushed on top, the pager is still composed underneath.
+                        // Hide ALL pager content from the accessibility tree so
+                        // services like Xiaomi AI Engine don't traverse 100+ items
+                        // on every UI change in the overlay screen.
+                        val isMainCovered = backStack.size > 1
                         HorizontalPager(
                             state = pagerState,
                             beyondViewportPageCount = 3,
                             userScrollEnabled = false,
                         ) { page ->
+                            val hideFromA11y = isMainCovered || page != pagerState.currentPage
+                            val pageModifier = if (hideFromA11y) {
+                                Modifier.clearAndSetSemantics {}
+                            } else {
+                                Modifier
+                            }
+                            Box(modifier = pageModifier) {
                             when (page) {
                                 0 -> HomePage(
                                     bottomPadding = paddingValues.calculateBottomPadding(),
@@ -232,17 +267,33 @@ fun MainScreen(isModuleActive: Boolean) {
                                 )
                                 1 -> AppsPage(
                                     bottomPadding = paddingValues.calculateBottomPadding(),
+                                    whitelistVersion = whitelistVersion,
+                                    allApps = allApps,
+                                    mediaApps = mediaApps,
+                                    isRefreshing = appsLoading,
+                                    onRefresh = {
+                                        appsLoading = true
+                                        scope.launch {
+                                            withContext(Dispatchers.IO) {
+                                                mediaApps = scanner.scanMediaApps()
+                                                allApps = scanner.scanAllApps()
+                                            }
+                                            appsLoading = false
+                                        }
+                                    },
                                     onAppClick = { app -> backStack.add(Screen.AppFeature(app.packageName)) },
                                 )
                                 2 -> FeaturesPage(
                                     bottomPadding = paddingValues.calculateBottomPadding(),
                                     currentDpi = currentDpi,
                                     onDpiChanged = { currentDpi = it },
+                                    onWallpaperClick = { backStack.add(Screen.Wallpaper) },
                                 )
                                 3 -> SettingsPage(
                                     bottomPadding = paddingValues.calculateBottomPadding(),
                                     onAboutClick = { backStack.add(Screen.About) },
                                 )
+                            }
                             }
                         }
                     }
@@ -251,10 +302,16 @@ fun MainScreen(isModuleActive: Boolean) {
                 Screen.About -> NavEntry(key) {
                     AboutPage(onBack = { backStack.removeLastOrNull() })
                 }
+                Screen.Wallpaper -> NavEntry(key) {
+                    WallpaperPage(onBack = { backStack.removeLastOrNull() })
+                }
                 is Screen.AppFeature -> NavEntry(key) {
                     AppFeaturePage(
                         packageName = key.packageName,
-                        onBack = { backStack.removeLastOrNull() },
+                        onBack = {
+                            backStack.removeLastOrNull()
+                            whitelistVersion++
+                        },
                     )
                 }
                 else -> NavEntry(key) {}

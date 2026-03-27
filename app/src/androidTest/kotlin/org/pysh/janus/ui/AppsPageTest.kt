@@ -28,7 +28,7 @@ class AppsPageTest {
     @Test
     fun appsPage_displaysTitle() {
         rule.setContent {
-            MiuixTheme { AppsPage(bottomPadding = 0.dp, onAppClick = {}) }
+            MiuixTheme { AppsPage(bottomPadding = 0.dp, whitelistVersion = 0, allApps = emptyList(), mediaApps = emptyList(), isRefreshing = false, onRefresh = {}, onAppClick = {}) }
         }
         rule.onNodeWithText(s(R.string.nav_apps)).assertIsDisplayed()
     }
@@ -37,7 +37,7 @@ class AppsPageTest {
     @Test
     fun appsPage_displaysSearchBar() {
         rule.setContent {
-            MiuixTheme { AppsPage(bottomPadding = 0.dp, onAppClick = {}) }
+            MiuixTheme { AppsPage(bottomPadding = 0.dp, whitelistVersion = 0, allApps = emptyList(), mediaApps = emptyList(), isRefreshing = false, onRefresh = {}, onAppClick = {}) }
         }
         rule.onNodeWithText(s(R.string.search_apps)).assertExists()
     }
@@ -46,7 +46,7 @@ class AppsPageTest {
     @Test
     fun appsPage_emptySearchResult_noCrash() {
         rule.setContent {
-            MiuixTheme { AppsPage(bottomPadding = 0.dp, onAppClick = {}) }
+            MiuixTheme { AppsPage(bottomPadding = 0.dp, whitelistVersion = 0, allApps = emptyList(), mediaApps = emptyList(), isRefreshing = false, onRefresh = {}, onAppClick = {}) }
         }
         // 页面正常渲染即可，无崩溃
         rule.onNodeWithText(s(R.string.nav_apps)).assertIsDisplayed()
