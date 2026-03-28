@@ -18,11 +18,14 @@ class HookEntry : IXposedHookLoadPackage {
         private const val SELF_PACKAGE = "org.pysh.janus"
         private const val PREFS_NAME = "janus_config"
         private const val APPLE_MUSIC_PACKAGE = "com.apple.android.music"
+        private const val LUNA_MUSIC_PACKAGE = "com.luna.music"
 
-        /** Package → LyricInjector registry. To add a new app, just add a mapping here
-         *  and implement a subclass of [LyricInjector]. */
-        private val lyricProviders: Map<String, LyricInjector> = mapOf(
-            APPLE_MUSIC_PACKAGE to AppleMusicLyricHook,
+        /** Package → hook for music apps needing lyric support.
+         *  LyricInjector subclasses for apps without native BT lyrics,
+         *  simple force-enable hooks for apps that have BT lyrics. */
+        private val musicAppHooks: Map<String, (XC_LoadPackage.LoadPackageParam) -> Unit> = mapOf(
+            APPLE_MUSIC_PACKAGE to { AppleMusicLyricHook.hook(it) },
+            LUNA_MUSIC_PACKAGE to { LunaMusicLyricHook.hook(it) },
         )
         private const val WALLPAPER_LONG_PRESS_GESTURE = "Z1.t" // MainPanel long-press-to-edit handler
         private const val SUB_SCREEN_LAUNCHER = "$TARGET_PACKAGE.SubScreenLauncher"
@@ -50,11 +53,8 @@ class HookEntry : IXposedHookLoadPackage {
                 MusicTemplatePatch.hook(lpparam)
                 WeatherCardHook.hook(lpparam, prefs)
             }
-            in lyricProviders -> {
-                val pkg = lpparam.packageName
-                if (pkg in getCustomWhitelist()) {
-                    lyricProviders[pkg]?.hook(lpparam)
-                }
+            in musicAppHooks -> {
+                musicAppHooks[lpparam.packageName]?.invoke(lpparam)
             }
         }
     }

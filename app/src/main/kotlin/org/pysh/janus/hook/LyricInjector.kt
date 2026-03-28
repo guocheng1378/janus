@@ -231,12 +231,12 @@ abstract class LyricInjector(protected val tag: String) {
         if (text == null || durationMs <= 0) return 0
         // Estimate text width in sr-units (CJK ≈ fontSize, ASCII ≈ 0.55 * fontSize)
         val textWidthSr = text.sumOf { ch ->
-            if (ch.code > 0x7F) FONT_SIZE_SR else FONT_SIZE_SR * 0.55
+            if (ch.code > 0x7F) MamlConstants.FONT_SIZE_SR else MamlConstants.FONT_SIZE_SR * 0.55
         }
-        val overflowSr = textWidthSr - ELEM_WIDTH_SR
+        val overflowSr = textWidthSr - MamlConstants.ELEM_WIDTH_SR
         if (overflowSr <= 0) return 0
         // Convert to MAML pixels and include 50px initial offset
-        val totalScrollMaml = (overflowSr * SR) + MARQUEE_START_OFFSET
+        val totalScrollMaml = (overflowSr * MamlConstants.SR) + MamlConstants.MARQUEE_START_OFFSET
         // Complete 200ms before next line so end state is briefly visible
         val effectiveDurationSec = (durationMs - 200).coerceAtLeast(200) / 1000.0
         return (totalScrollMaml / effectiveDurationSec).toInt().coerceIn(1, 1000)
@@ -245,12 +245,6 @@ abstract class LyricInjector(protected val tag: String) {
     companion object {
         /** Metadata key for passing calculated marquee speed to subscreencenter. */
         const val MARQUEE_SPEED_KEY = "janus.lyric.marquee_speed"
-
-        // Template constants (screenWidth=1080, sr=1080/334)
-        private const val SR = 1080.0 / 334.0
-        private const val FONT_SIZE_SR = 20.0       // size="(20 * #sr)"
-        private const val ELEM_WIDTH_SR = 173.0      // w="#albumInfoW" = 173 * scaleX
-        private const val MARQUEE_START_OFFSET = 50.0 // MAML marquee initial x offset
     }
 
     private fun getPosition(state: PlaybackState): Long {

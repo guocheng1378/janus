@@ -32,7 +32,10 @@ object WeatherCardHook {
     private const val NOTIFICATION_ID = 19990
     private const val WEATHER_FLAG =
         "/data/system/theme_magic/users/0/subscreencenter/config/janus_weather"
-    private const val UPDATE_INTERVAL_MS = 30 * 60 * 1000L
+    private const val WEATHER_REFRESH_FLAG =
+        "/data/system/theme_magic/users/0/subscreencenter/config/janus_weather_refresh"
+    private const val WEATHER_PRIORITY_FLAG =
+        "/data/system/theme_magic/users/0/subscreencenter/config/janus_weather_priority"
 
     private var manager: Any? = null
     private var mainHandler: Handler? = null
@@ -128,14 +131,16 @@ object WeatherCardHook {
                         mainHandler = XposedHelpers.getStaticObjectField(mgrCls, "E") as? Handler
 
                         deployTemplate()
+                        val updateIntervalMs =
+                            MamlConstants.readIntFlag(WEATHER_REFRESH_FLAG, 30) * 60 * 1000L
                         uiHandler.postDelayed({ injectCard() }, 3_000)
                         val periodic = object : Runnable {
                             override fun run() {
                                 injectCard()
-                                uiHandler.postDelayed(this, UPDATE_INTERVAL_MS)
+                                uiHandler.postDelayed(this, updateIntervalMs)
                             }
                         }
-                        uiHandler.postDelayed(periodic, UPDATE_INTERVAL_MS)
+                        uiHandler.postDelayed(periodic, updateIntervalMs)
                         XposedBridge.log("[$TAG] Template deployed, card scheduled")
                     }
                 },
@@ -156,7 +161,7 @@ object WeatherCardHook {
 
             ZipOutputStream(FileOutputStream(mrcFile)).use { zip ->
                 zip.putNextEntry(ZipEntry("manifest.xml"))
-                zip.write(MANIFEST_XML.toByteArray(Charsets.UTF_8))
+                zip.write(buildManifestXml().toByteArray(Charsets.UTF_8))
                 zip.closeEntry()
             }
             mrcFile.setReadable(true, false)
@@ -172,10 +177,11 @@ object WeatherCardHook {
         val mgr = manager ?: return
         val h = mainHandler ?: return
         try {
+            val priority = MamlConstants.readIntFlag(WEATHER_PRIORITY_FLAG, 100)
             val rearParam = JSONObject().apply {
                 put("business", WEATHER_BUSINESS)
                 put("index", 0)
-                put("priority", 100)
+                put("priority", priority)
             }
             val bundle = Bundle().apply {
                 putString("miui.rear.param", rearParam.toString())
@@ -194,12 +200,32 @@ object WeatherCardHook {
         }
     }
 
-    // ── Original MAML weather template ──────────────────────────────────
-    // Clean, minimal design with ContentProviderBinder for weather data.
-    // Camera on left ~37%, content on right. Supports AOD and dark mode.
+    // ── Locale-aware MAML weather template ─────────────────────────────
+
+    private data class WeatherStrings(
+        val airPrefix: String,
+        val aqiExcellent: String,
+        val aqiGood: String,
+        val aqiLight: String,
+        val aqiModerate: String,
+        val aqiHeavy: String,
+        val humidity: String,
+        val loading: String,
+    )
+
+    private fun getWeatherStrings(): WeatherStrings {
+        val lang = java.util.Locale.getDefault().language
+        return if (lang == "zh") {
+            WeatherStrings("空气", "优", "良", "轻度", "中度", "重度", "湿度", "天气加载中...")
+        } else {
+            WeatherStrings("AQI", "Excellent", "Good", "Light", "Moderate", "Heavy", "Humidity", "Loading weather...")
+        }
+    }
 
     @Suppress("MaxLineLength")
-    private val MANIFEST_XML = """
+    private fun buildManifestXml(): String {
+        val ws = getWeatherStrings()
+        return """
 <Widget frameRate="0" scaleByDensity="false" screenWidth="1080" version="2" useVariableUpdater="HyperMaterial,DateTime.Minute">
   <Var name="s" type="number" expression="(#view_width / 336)"/>
   <Var name="cx" type="number" expression="(128 * #s)"/>
@@ -232,7 +258,7 @@ object WeatherCardHook {
 
   <Function name="calc">
     <VariableCommand name="aqi_n" expression="ifelse(strIsEmpty(@aqi_raw),0,strToReal(@aqi_raw))" type="number"/>
-    <VariableCommand name="aqi_lbl" expression="ifelse(#aqi_n{1,'',#aqi_n{51,'优',#aqi_n{101,'良',#aqi_n{151,'轻度',#aqi_n{201,'中度','重度')))" type="string"/>
+    <VariableCommand name="aqi_lbl" expression="ifelse(#aqi_n{1,'',#aqi_n{51,'${ws.aqiExcellent}',#aqi_n{101,'${ws.aqiGood}',#aqi_n{151,'${ws.aqiLight}',#aqi_n{201,'${ws.aqiModerate}','${ws.aqiHeavy}')))))" type="string"/>
   </Function>
 
   <!-- ── City ── -->
@@ -260,7 +286,7 @@ object WeatherCardHook {
         visibility="ifelse(strIsEmpty(@desc),0,1)"/>
 
   <!-- ── AQI ── -->
-  <Text textExp="'空气'+@aqi_lbl+' '+@aqi_raw"
+  <Text textExp="'${ws.airPrefix}'+@aqi_lbl+' '+@aqi_raw"
         x="(#cx + 98*#s)" y="(68*#s)" w="(100*#s)" h="(14*#s)"
         size="(11*#s)" color="#99ffffff" textAlign="left"
         visibility="ifelse(strIsEmpty(@aqi_lbl),0,1)"/>
@@ -294,13 +320,13 @@ object WeatherCardHook {
   </Group>
 
   <!-- ── Wind + Humidity (bottom right) ── -->
-  <Text textExp="@wind+'  |  '+'湿度 '+@humid+'%'"
+  <Text textExp="@wind+'  |  '+'${ws.humidity} '+@humid+'%'"
         x="#cx" y="(144*#s)" w="#rw" h="(12*#s)"
         size="(9*#s)" color="#66ffffff" textAlign="left"
         visibility="ifelse(#has_data,1,0)"/>
 
   <!-- ── No-data placeholder ── -->
-  <Text text="天气加载中..."
+  <Text text="${ws.loading}"
         x="#cx" y="(60*#s)" w="#rw" h="(30*#s)"
         size="(14*#s)" color="#55ffffff" textAlign="left"
         visibility="ifelse(#has_data,0,1)"/>
@@ -362,4 +388,5 @@ object WeatherCardHook {
   </ExternalCommands>
 </Widget>
 """.trimIndent()
+    }
 }

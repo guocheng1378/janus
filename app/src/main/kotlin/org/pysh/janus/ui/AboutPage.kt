@@ -144,6 +144,20 @@ fun AboutPage(onBack: () -> Unit) {
                         )
                     },
                 )
+                SuperArrow(
+                    title = stringResource(R.string.support),
+                    endActions = {
+                        Text(
+                            text = stringResource(R.string.about_afdian),
+                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                        )
+                    },
+                    onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse("https://ifdian.net/a/janus"))
+                        )
+                    },
+                )
                 Box(
                     modifier = Modifier.combinedClickable(
                         onClick = {

@@ -30,6 +30,7 @@ Janus is an LSPosed module for Xiaomi phones with a rear screen, designed to enh
 - **Screen Casting Settings** — Screen casting rotation control, keep rear screen on during casting
 - **Rear Screen Weather Card** — Add a weather card to the Smart Assistant panel with city, temperature, forecast, AQI and more, powered by HyperOS weather data
 - **Apple Music Rear Screen Lyrics** — Display timed lyrics from Apple Music on the rear screen with smooth progress-synced marquee scrolling and fade-in transitions
+- **Luna Music Rear Screen Lyrics** — Force-enable Bluetooth lyrics in Luna Music so lyrics display on the rear screen via MediaSession
 - **Telemetry Blocking** — Intercept `DailyTrackReceiver` to block data reporting
 - **Quick Switch** — Quick settings tile for one-tap casting to rear screen
 - **Hide Launcher Icon** — Hide app icon from launcher, open via LSPosed module manager
@@ -49,6 +50,8 @@ Janus is an LSPosed module for Xiaomi phones with a rear screen, designed to enh
 | App Name          | Package Name                    |
 |:------------------|:--------------------------------|
 | Rear Display | com.xiaomi.subscreencenter      |
+| Apple Music | com.apple.android.music |
+| Luna Music | com.luna.music |
 
 ## Building
 
@@ -81,6 +84,10 @@ app/src/main/kotlin/org/pysh/janus/
 ├── util/           # Utilities (Root, Display)
 └── MainActivity.kt
 ```
+
+## Support
+
+If you find this project helpful, consider supporting the development on [Afdian](https://ifdian.net/a/janus).
 
 ## Acknowledgements
 
