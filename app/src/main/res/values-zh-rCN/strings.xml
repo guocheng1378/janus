@@ -128,7 +128,7 @@
 
     <!-- 更新通告 -->
     <string name="update_title">v%s 更新内容</string>
-    <string name="update_changelog">背屏服务助手新增天气卡片\n已添加白名单的应用置顶显示\n应用列表支持下拉刷新\n优化导航性能与无障碍体验</string>
+    <string name="update_changelog">Apple Music 背屏歌词，支持平滑滚动显示\n歌词滚动速度与播放进度同步\n歌词切换淡入过渡动画</string>
     <string name="update_join_group">加入 QQ 群</string>
     <string name="update_dismiss">知道了</string>
 </resources>

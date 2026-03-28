@@ -133,7 +133,7 @@
 
     <!-- Update Dialog -->
     <string name="update_title">What\'s New in v%s</string>
-    <string name="update_changelog">Weather card on rear screen Smart Assistant panel\nWhitelisted apps pinned to top of app list\nPull-to-refresh to rescan installed apps\nImproved navigation performance and accessibility</string>
+    <string name="update_changelog">Apple Music rear screen lyrics with smooth scrolling\nLyric scroll speed synced to playback progress\nFade-in transition on lyric line changes</string>
     <string name="update_join_group">Join QQ Group</string>
     <string name="update_dismiss">Got it</string>
 </resources>

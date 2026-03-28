@@ -175,7 +175,7 @@ class WhitelistManager(private val context: Context) {
         syncBooleanFlag(TRACKING_FLAG_PATH, isTrackingDisabled())
         syncBooleanFlag(WALLPAPER_KEEP_ALIVE_FLAG_PATH, isWallpaperKeepAlive())
         syncBooleanFlag(WALLPAPER_LOCK_FLAG_PATH, isWallpaperLocked())
-        // Weather flag is managed by setWeatherCardEnabled() separately
+        syncBooleanFlag(WEATHER_FLAG_PATH, isWeatherCardEnabled())
     }
 
     private fun syncBooleanFlag(path: String, enabled: Boolean) {

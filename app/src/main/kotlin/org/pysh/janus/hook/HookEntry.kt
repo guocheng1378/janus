@@ -18,6 +18,12 @@ class HookEntry : IXposedHookLoadPackage {
         private const val SELF_PACKAGE = "org.pysh.janus"
         private const val PREFS_NAME = "janus_config"
         private const val APPLE_MUSIC_PACKAGE = "com.apple.android.music"
+
+        /** Package → LyricInjector registry. To add a new app, just add a mapping here
+         *  and implement a subclass of [LyricInjector]. */
+        private val lyricProviders: Map<String, LyricInjector> = mapOf(
+            APPLE_MUSIC_PACKAGE to AppleMusicLyricHook,
+        )
         private const val WALLPAPER_LONG_PRESS_GESTURE = "Z1.t" // MainPanel long-press-to-edit handler
         private const val SUB_SCREEN_LAUNCHER = "$TARGET_PACKAGE.SubScreenLauncher"
         private const val JANUS_MRC = "/data/system/theme/rearScreenWhite/janus_custom.mrc"
@@ -41,11 +47,13 @@ class HookEntry : IXposedHookLoadPackage {
                 hookWallpaperKeepAlive(lpparam)
                 hookWallpaperLock(lpparam)
                 hookWallpaperPathRedirect(lpparam)
+                MusicTemplatePatch.hook(lpparam)
                 WeatherCardHook.hook(lpparam, prefs)
             }
-            APPLE_MUSIC_PACKAGE -> {
-                if (isAppleMusicInWhitelist()) {
-                    AppleMusicLyricHook.hook(lpparam)
+            in lyricProviders -> {
+                val pkg = lpparam.packageName
+                if (pkg in getCustomWhitelist()) {
+                    lyricProviders[pkg]?.hook(lpparam)
                 }
             }
         }
@@ -273,10 +281,6 @@ class HookEntry : IXposedHookLoadPackage {
 
     private fun isTrackingDisabled(): Boolean {
         return java.io.File(TRACKING_FLAG).exists()
-    }
-
-    private fun isAppleMusicInWhitelist(): Boolean {
-        return APPLE_MUSIC_PACKAGE in getCustomWhitelist()
     }
 
     private fun getCustomWhitelist(): Set<String> {

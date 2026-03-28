@@ -12,6 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SwitchToRearTileService : TileService() {
 
@@ -26,11 +27,13 @@ class SwitchToRearTileService : TileService() {
             if (hasRearTask && watchJob?.isActive != true) {
                 startWatching(whitelistManager)
             }
-            qsTile?.apply {
-                state = if (hasRearTask) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-                label = getString(R.string.cast_tile_label)
-                subtitle = if (hasRearTask) getString(R.string.cast_tile_active) else null
-                updateTile()
+            withContext(Dispatchers.Main) {
+                qsTile?.apply {
+                    state = if (hasRearTask) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+                    label = getString(R.string.cast_tile_label)
+                    subtitle = if (hasRearTask) getString(R.string.cast_tile_active) else null
+                    updateTile()
+                }
             }
         }
     }
@@ -46,10 +49,12 @@ class SwitchToRearTileService : TileService() {
                 if (success) {
                     stopWatching(whitelistManager)
                 }
-                qsTile?.apply {
-                    state = if (success) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
-                    subtitle = if (success) null else getString(R.string.cast_tile_failed)
-                    updateTile()
+                withContext(Dispatchers.Main) {
+                    qsTile?.apply {
+                        state = if (success) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
+                        subtitle = if (success) null else getString(R.string.cast_tile_failed)
+                        updateTile()
+                    }
                 }
             } else {
                 // 背屏没任务 → 把主屏前台移过去
@@ -65,10 +70,12 @@ class SwitchToRearTileService : TileService() {
                     }
                     startWatching(whitelistManager)
                 }
-                qsTile?.apply {
-                    state = if (success) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-                    subtitle = if (success) getString(R.string.cast_tile_active) else getString(R.string.cast_tile_failed)
-                    updateTile()
+                withContext(Dispatchers.Main) {
+                    qsTile?.apply {
+                        state = if (success) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+                        subtitle = if (success) getString(R.string.cast_tile_active) else getString(R.string.cast_tile_failed)
+                        updateTile()
+                    }
                 }
             }
         }
@@ -83,10 +90,12 @@ class SwitchToRearTileService : TileService() {
                 if (rearTask == null) {
                     // 背屏应用已退出，自动还原
                     stopWatching(whitelistManager)
-                    qsTile?.apply {
-                        state = Tile.STATE_INACTIVE
-                        subtitle = null
-                        updateTile()
+                    withContext(Dispatchers.Main) {
+                        qsTile?.apply {
+                            state = Tile.STATE_INACTIVE
+                            subtitle = null
+                            updateTile()
+                        }
                     }
                     break
                 }

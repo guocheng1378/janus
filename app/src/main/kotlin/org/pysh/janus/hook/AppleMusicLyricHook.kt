@@ -1,11 +1,5 @@
 package org.pysh.janus.hook
 
-import android.media.MediaMetadata
-import android.media.session.MediaController
-import android.media.session.MediaSession
-import android.media.session.PlaybackState
-import android.os.Handler
-import android.os.Looper
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -15,52 +9,14 @@ import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader
 
 /**
- * Hooks Apple Music to display lyrics on the rear screen.
+ * Apple Music lyric provider.
  *
- * Mechanism: subscreencenter's music template displays the TITLE field from
- * MediaMetadata on the rear screen. Apps like 汽水音乐 show lyrics by writing
- * the current lyric line into the TITLE field, updating every few seconds.
- *
- * This hook does the same for Apple Music:
- * 1. Captures TTML lyrics when parsed by Apple Music's native TTMLParser
- * 2. Converts to a timed lyric list (text + begin/end milliseconds)
- * 3. Periodically reads playback position, finds the current line, and
- *    overwrites the TITLE field in MediaMetadata with the lyric text
+ * Captures TTML lyrics from Apple Music's native TTMLParser and feeds
+ * timed lines to [LyricInjector] for rear-screen display.
  */
-object AppleMusicLyricHook {
+object AppleMusicLyricHook : LyricInjector("Janus-AppleMusic") {
 
-    private const val TAG = "Janus-AppleMusic"
-    private const val UPDATE_INTERVAL_MS = 500L
-
-    data class TimedLine(val beginMs: Int, val endMs: Int, val text: String)
-
-    @Volatile
-    private var lyrics: List<TimedLine> = emptyList()
-
-    @Volatile
-    private var translations: Map<Int, String> = emptyMap()
-
-    @Volatile
-    private var originalTitle: String? = null
-
-    @Volatile
-    private var lastLyricLine: String? = null
-
-    private var mediaSessionRef: MediaSession? = null
-    private var controllerRef: MediaController? = null
-    private val handler = Handler(Looper.getMainLooper())
-    private var updaterRunning = false
-
-    fun hook(lpparam: XC_LoadPackage.LoadPackageParam) {
-        hookTtmlParser(lpparam)
-        hookSetMetadata(lpparam)
-        hookPlaybackState(lpparam)
-        XposedBridge.log("[$TAG] Hooks installed")
-    }
-
-    // ── Hook 1: Capture TTML, build timed lyric list ──────────────────
-
-    private fun hookTtmlParser(lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun hookLyricSource(lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
             val cls = XposedHelpers.findClass(
                 "com.apple.android.music.ttml.javanative.TTMLParser\$TTMLParserNative",
@@ -72,184 +28,22 @@ object AppleMusicLyricHook {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         val ttml = param.args[0] as? String ?: return
                         try {
-                            parseTtml(ttml)
-                            XposedBridge.log("[$TAG] Parsed ${lyrics.size} lines, ${translations.size} translations")
-                            if (lyrics.isNotEmpty()) startLyricUpdater()
+                            val (lines, trans) = parseTtml(ttml)
+                            setLyrics(lines, trans)
                         } catch (e: Throwable) {
-                            XposedBridge.log("[$TAG] TTML parse failed: ${e.message}")
+                            XposedBridge.log("[Janus-AppleMusic] TTML parse failed: ${e.message}")
                         }
                     }
                 }
             )
         } catch (e: Throwable) {
-            XposedBridge.log("[$TAG] hookTtmlParser failed: ${e.message}")
+            XposedBridge.log("[Janus-AppleMusic] hookTtmlParser failed: ${e.message}")
         }
-    }
-
-    // ── Hook 2: Capture MediaSession + original title ─────────────────
-
-    private fun hookSetMetadata(lpparam: XC_LoadPackage.LoadPackageParam) {
-        try {
-            XposedHelpers.findAndHookMethod(
-                MediaSession::class.java, "setMetadata",
-                MediaMetadata::class.java,
-                object : XC_MethodHook() {
-                    override fun beforeHookedMethod(param: MethodHookParam) {
-                        val metadata = param.args[0] as? MediaMetadata ?: return
-                        val session = param.thisObject as MediaSession
-
-                        if (mediaSessionRef !== session) {
-                            mediaSessionRef = session
-                            controllerRef = session.controller
-                        }
-
-                        val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
-                        // Only save as original title if it's NOT a lyric line we injected
-                        if (title != null && title != lastLyricLine) {
-                            originalTitle = title
-                        }
-
-                        // If lyrics are active, overwrite title with current lyric
-                        // to prevent Apple Music's original title from flashing through
-                        if (lyrics.isNotEmpty() && updaterRunning && lastLyricLine != null) {
-                            try {
-                                val bundle = XposedHelpers.getObjectField(metadata, "mBundle")
-                                        as android.os.Bundle
-                                bundle.putString(MediaMetadata.METADATA_KEY_TITLE, lastLyricLine)
-                                bundle.putString(
-                                    "android.media.metadata.CUSTOM_FIELD_TITLE", lastLyricLine)
-                            } catch (_: Throwable) { }
-                        }
-
-                        if (lyrics.isNotEmpty()) startLyricUpdater()
-                    }
-                }
-            )
-        } catch (e: Throwable) {
-            XposedBridge.log("[$TAG] hookSetMetadata failed: ${e.message}")
-        }
-    }
-
-    // ── Hook 3: Start/stop lyric updater based on playback state ──────
-
-    private fun hookPlaybackState(lpparam: XC_LoadPackage.LoadPackageParam) {
-        try {
-            XposedHelpers.findAndHookMethod(
-                MediaSession::class.java, "setPlaybackState",
-                PlaybackState::class.java,
-                object : XC_MethodHook() {
-                    override fun afterHookedMethod(param: MethodHookParam) {
-                        val state = param.args[0] as? PlaybackState ?: return
-                        when (state.state) {
-                            PlaybackState.STATE_PLAYING,
-                            PlaybackState.STATE_BUFFERING,
-                            PlaybackState.STATE_FAST_FORWARDING,
-                            PlaybackState.STATE_REWINDING -> startLyricUpdater()
-                            else -> stopLyricUpdater()
-                        }
-                    }
-                }
-            )
-        } catch (e: Throwable) {
-            XposedBridge.log("[$TAG] hookPlaybackState failed: ${e.message}")
-        }
-    }
-
-    // ── Smart lyric updater — schedules next update at line boundary ──
-
-    private val updateRunnable = Runnable {
-        if (updaterRunning) scheduleNextUpdate()
-    }
-
-    private fun startLyricUpdater() {
-        if (updaterRunning) return
-        if (lyrics.isEmpty()) return
-        updaterRunning = true
-        handler.post { scheduleNextUpdate() }
-    }
-
-    private fun stopLyricUpdater() {
-        updaterRunning = false
-        handler.removeCallbacks(updateRunnable)
-    }
-
-    private fun scheduleNextUpdate() {
-        if (!updaterRunning) return
-        val session = mediaSessionRef ?: return
-        val controller = controllerRef ?: return
-        val currentLyrics = lyrics
-        if (currentLyrics.isEmpty()) return
-
-        val playbackState = controller.playbackState ?: return
-        val position = getPosition(playbackState)
-
-        // Find current line and next line
-        val idx = findLyricIndex(currentLyrics, position)
-        val line = if (idx >= 0) currentLyrics[idx] else null
-        val trans = if (line != null) translations[line.beginMs] else null
-        val lyricText = when {
-            line == null -> originalTitle
-            trans != null -> "${line.text}\n${trans}"
-            else -> line.text
-        }
-
-        // Only call setMetadata when the displayed line actually changes
-        if (lyricText != lastLyricLine) {
-            lastLyricLine = lyricText
-            val metadata = controller.metadata
-            if (metadata != null) {
-                try {
-                    val bundle = XposedHelpers.getObjectField(metadata, "mBundle")
-                            as android.os.Bundle
-                    bundle.putString(MediaMetadata.METADATA_KEY_TITLE, lyricText)
-                    bundle.putString("android.media.metadata.CUSTOM_FIELD_TITLE", lyricText)
-                    session.setMetadata(metadata)
-                } catch (_: Throwable) { }
-            }
-        }
-
-        // Schedule next update at the next line boundary
-        val nextIdx = idx + 1
-        val delayMs = if (nextIdx in currentLyrics.indices) {
-            val nextBegin = currentLyrics[nextIdx].beginMs.toLong()
-            val wait = nextBegin - getPosition(playbackState)
-            wait.coerceIn(200, 10_000)
-        } else {
-            2000L // After last line, poll slowly
-        }
-        handler.postDelayed(updateRunnable, delayMs)
-    }
-
-    private fun getPosition(state: PlaybackState): Long {
-        return state.position +
-                ((android.os.SystemClock.elapsedRealtime() - state.lastPositionUpdateTime)
-                        * state.playbackSpeed).toLong()
-    }
-
-    /** Returns index of the current lyric line, or -1 if in a gap/before first line. */
-    private fun findLyricIndex(lines: List<TimedLine>, positionMs: Long): Int {
-        var lo = 0
-        var hi = lines.size - 1
-        var result = -1
-        while (lo <= hi) {
-            val mid = (lo + hi) / 2
-            if (lines[mid].beginMs <= positionMs) {
-                result = mid
-                lo = mid + 1
-            } else {
-                hi = mid - 1
-            }
-        }
-        if (result >= 0) {
-            val line = lines[result]
-            if (line.endMs > 0 && positionMs > line.endMs) return -1
-        }
-        return result
     }
 
     // ── TTML parsing ──────────────────────────────────────────────────
 
-    private fun parseTtml(ttml: String) {
+    private fun parseTtml(ttml: String): Pair<List<TimedLine>, Map<Int, String>> {
         val parser = XmlPullParserFactory.newInstance().newPullParser()
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true)
         parser.setInput(StringReader(ttml))
@@ -293,35 +87,29 @@ object AppleMusicLyricHook {
             parser.next()
         }
 
-        if (divGroups.isEmpty()) {
-            lyrics = emptyList()
-            translations = emptyMap()
-            return
-        }
+        if (divGroups.isEmpty()) return emptyList<TimedLine>() to emptyMap()
 
-        // Group divs by language. Divs with same lang (or null) are sections
-        // of the same song (Verse, Chorus, etc.), not translations.
+        // Merge divs by language — same lang = song sections, not translations
         val byLang = mutableMapOf<String?, MutableList<TimedLine>>()
         for ((lang, lines) in divGroups) {
             byLang.getOrPut(lang) { mutableListOf() }.addAll(lines)
         }
 
-        // Primary language group = matching primaryLang, or null, or first
         val originalLang = when {
             primaryLang != null && primaryLang in byLang -> primaryLang
             null in byLang -> null
             else -> byLang.keys.first()
         }
-        lyrics = (byLang.remove(originalLang) ?: emptyList()).sortedBy { it.beginMs }
+        val originalLines = (byLang.remove(originalLang) ?: emptyList()).sortedBy { it.beginMs }
 
-        // Remaining language groups = translations
         val transMap = mutableMapOf<Int, String>()
         for ((_, lines) in byLang) {
             for (line in lines) {
                 transMap[line.beginMs] = line.text
             }
         }
-        translations = transMap
+
+        return originalLines to transMap
     }
 
     private fun collectText(parser: XmlPullParser, endTag: String): String {

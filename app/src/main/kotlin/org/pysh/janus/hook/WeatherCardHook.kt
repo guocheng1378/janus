@@ -40,6 +40,10 @@ object WeatherCardHook {
     private var initialized = false
 
     fun hook(lpparam: XC_LoadPackage.LoadPackageParam, @Suppress("UNUSED_PARAMETER") prefs: XSharedPreferences) {
+        if (!File(WEATHER_FLAG).exists()) {
+            XposedBridge.log("[$TAG] Flag file absent, weather hook skipped")
+            return
+        }
         patchConstants(lpparam)
         patchProtectedMap(lpparam)
         hookFilter(lpparam)
@@ -122,11 +126,6 @@ object WeatherCardHook {
                         initialized = true
                         manager = param.thisObject
                         mainHandler = XposedHelpers.getStaticObjectField(mgrCls, "E") as? Handler
-
-                        if (!File(WEATHER_FLAG).exists()) {
-                            XposedBridge.log("[$TAG] Flag file absent, skipping")
-                            return
-                        }
 
                         deployTemplate()
                         uiHandler.postDelayed({ injectCard() }, 3_000)
