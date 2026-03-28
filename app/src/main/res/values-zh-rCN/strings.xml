@@ -67,6 +67,24 @@
     <string name="wp_restore">恢复原始壁纸</string>
     <string name="wp_restore_success">已恢复原始壁纸，背屏正在重启</string>
 
+    <string name="section_weather">天气</string>
+    <string name="weather_refresh_interval">刷新间隔</string>
+    <string name="weather_refresh_interval_value">%d 分钟</string>
+    <string name="weather_refresh_interval_summary">输入 %1$d-%2$d 分钟</string>
+    <string name="weather_card_priority">卡片优先级</string>
+    <string name="weather_card_priority_value">%d</string>
+    <string name="weather_card_priority_summary">输入 %1$d-%2$d</string>
+    <string name="weather_save">保存并重启背屏</string>
+
+    <string name="section_lyric">歌词显示</string>
+    <string name="lyric_fade_duration">淡入时长</string>
+    <string name="lyric_fade_duration_value">%d 毫秒</string>
+    <string name="lyric_fade_duration_summary">输入 %1$d-%2$d 毫秒</string>
+    <string name="lyric_mode_threshold">检测阈值</string>
+    <string name="lyric_mode_threshold_value">%d 秒</string>
+    <string name="lyric_mode_threshold_summary">输入 %1$d-%2$d 秒</string>
+    <string name="lyric_save">保存</string>
+
     <string name="keep_alive">背屏常亮</string>
     <string name="keep_alive_notification">背屏常亮服务运行中</string>
     <string name="keep_alive_notification_text">每 %d 秒唤醒背屏</string>
@@ -120,6 +138,8 @@
     <string name="about">关于</string>
 
     <!-- 关于页 -->
+    <string name="about_afdian">爱发电</string>
+    <string name="support">赞助支持</string>
     <string name="project">项目地址</string>
     <string name="author">作者主页</string>
     <string name="qq_group">QQ 群</string>
@@ -128,7 +148,8 @@
 
     <!-- 更新通告 -->
     <string name="update_title">v%s 更新内容</string>
-    <string name="update_changelog">Apple Music 背屏歌词，支持平滑滚动显示\n歌词滚动速度与播放进度同步\n歌词切换淡入过渡动画</string>
+    <string name="update_changelog">汽水音乐背屏滚动歌词\n天气卡片：可配置刷新间隔和优先级\n歌词显示：可配置淡入时长和检测阈值\n天气卡片模板国际化（中英文）</string>
     <string name="update_join_group">加入 QQ 群</string>
+    <string name="update_support">爱发电支持</string>
     <string name="update_dismiss">知道了</string>
 </resources>

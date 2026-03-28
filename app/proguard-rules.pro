@@ -6,6 +6,9 @@
 # Lyric injection — base class + all providers
 -keep class org.pysh.janus.hook.LyricInjector { *; }
 -keep class * extends org.pysh.janus.hook.LyricInjector { *; }
+-keep class org.pysh.janus.hook.LunaMusicLyricHook { *; }
+-keep class org.pysh.janus.hook.LyricParser { *; }
+-keep class org.pysh.janus.hook.MamlConstants { *; }
 
 # WhitelistManager — accessed via XSharedPreferences reflection
 -keep class org.pysh.janus.data.WhitelistManager { *; }

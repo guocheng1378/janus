@@ -68,6 +68,24 @@
     <string name="wp_restore">Restore Original</string>
     <string name="wp_restore_success">Original wallpaper restored, rear screen restarting</string>
 
+    <string name="section_weather">Weather</string>
+    <string name="weather_refresh_interval">Refresh Interval</string>
+    <string name="weather_refresh_interval_value">%d min</string>
+    <string name="weather_refresh_interval_summary">Enter %1$d–%2$d minutes</string>
+    <string name="weather_card_priority">Card Priority</string>
+    <string name="weather_card_priority_value">%d</string>
+    <string name="weather_card_priority_summary">Enter %1$d–%2$d</string>
+    <string name="weather_save">Save &amp; Restart Rear Screen</string>
+
+    <string name="section_lyric">Lyric Display</string>
+    <string name="lyric_fade_duration">Fade Duration</string>
+    <string name="lyric_fade_duration_value">%d ms</string>
+    <string name="lyric_fade_duration_summary">Enter %1$d–%2$d ms</string>
+    <string name="lyric_mode_threshold">Detection Threshold</string>
+    <string name="lyric_mode_threshold_value">%d s</string>
+    <string name="lyric_mode_threshold_summary">Enter %1$d–%2$d seconds</string>
+    <string name="lyric_save">Save</string>
+
     <string name="keep_alive">Rear Screen Keep-Alive</string>
     <string name="keep_alive_notification">Keep-alive service running</string>
     <string name="keep_alive_notification_text">Waking rear screen every %d seconds</string>
@@ -124,6 +142,8 @@
     <!-- About -->
     <string name="app_version_format">v%s</string>
     <string name="about_github">GitHub</string>
+    <string name="about_afdian">Afdian</string>
+    <string name="support">Support</string>
     <string name="about_author_name">YunPeng</string>
     <string name="project">Project Page</string>
     <string name="author">Author Page</string>
@@ -133,7 +153,8 @@
 
     <!-- Update Dialog -->
     <string name="update_title">What\'s New in v%s</string>
-    <string name="update_changelog">Apple Music rear screen lyrics with smooth scrolling\nLyric scroll speed synced to playback progress\nFade-in transition on lyric line changes</string>
+    <string name="update_changelog">Luna Music rear screen scrolling lyrics\nWeather card: configurable refresh interval and priority\nLyric display: configurable fade duration and detection threshold\nWeather card template internationalization (Chinese/English)</string>
     <string name="update_join_group">Join QQ Group</string>
+    <string name="update_support">Support on Afdian</string>
     <string name="update_dismiss">Got it</string>
 </resources>

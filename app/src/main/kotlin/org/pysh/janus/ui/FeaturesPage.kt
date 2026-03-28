@@ -37,6 +37,7 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Slider
+import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
@@ -46,6 +47,19 @@ import top.yukonga.miuix.kmp.extra.SuperRadioButton
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
+
+private const val KEEP_ALIVE_MIN_SECONDS = 1
+private const val KEEP_ALIVE_MAX_SECONDS = 300
+private const val DPI_MIN = 100
+private const val DPI_MAX = 800
+private const val WEATHER_REFRESH_MIN = 10
+private const val WEATHER_REFRESH_MAX = 120
+private const val WEATHER_PRIORITY_MIN = 1
+private const val WEATHER_PRIORITY_MAX = 999
+private const val LYRIC_FADE_MIN = 100
+private const val LYRIC_FADE_MAX = 2000
+private const val LYRIC_THRESHOLD_MIN_SEC = 1
+private const val LYRIC_THRESHOLD_MAX_SEC = 60
 
 @Preview(showBackground = true)
 @Composable
@@ -71,6 +85,11 @@ fun FeaturesPage(
     var disableTracking by remember { mutableStateOf(whitelistManager?.isTrackingDisabled() ?: false) }
 
     var weatherCard by remember { mutableStateOf(whitelistManager?.isWeatherCardEnabled() ?: false) }
+    var weatherRefreshInterval by remember { mutableFloatStateOf(whitelistManager?.getWeatherRefreshInterval()?.toFloat() ?: 30f) }
+    var weatherPriority by remember { mutableFloatStateOf(whitelistManager?.getWeatherCardPriority()?.toFloat() ?: 100f) }
+
+    var lyricFadeDuration by remember { mutableFloatStateOf(whitelistManager?.getLyricFadeDuration()?.toFloat() ?: 700f) }
+    var lyricThreshold by remember { mutableFloatStateOf((whitelistManager?.getLyricModeThreshold()?.toFloat() ?: 15000f) / 1000f) }
 
     var dpiSliderValue by remember { mutableFloatStateOf(currentDpi?.toFloat() ?: 320f) }
     var castRotation by remember { mutableStateOf(whitelistManager?.getCastRotation() ?: 0) }
@@ -79,6 +98,10 @@ fun FeaturesPage(
     var showIntervalDialog by remember { mutableStateOf(false) }
     var showDpiDialog by remember { mutableStateOf(false) }
     var showRotationDialog by remember { mutableStateOf(false) }
+    var showWeatherRefreshDialog by remember { mutableStateOf(false) }
+    var showWeatherPriorityDialog by remember { mutableStateOf(false) }
+    var showLyricFadeDialog by remember { mutableStateOf(false) }
+    var showLyricThresholdDialog by remember { mutableStateOf(false) }
     var dialogInput by remember { mutableStateOf("") }
 
     val scrollBehavior = MiuixScrollBehavior()
@@ -121,6 +144,7 @@ fun FeaturesPage(
                 }
             }
 
+            item { SmallTitle(text = stringResource(R.string.section_weather)) }
             item {
                 Card(modifier = Modifier.padding(bottom = 12.dp)) {
                     SuperSwitch(
@@ -138,6 +162,137 @@ fun FeaturesPage(
                             }
                         },
                     )
+                    if (weatherCard) {
+                        SuperArrow(
+                            title = stringResource(R.string.weather_refresh_interval),
+                            summary = stringResource(R.string.weather_refresh_interval_value, weatherRefreshInterval.toInt()),
+                            onClick = {
+                                dialogInput = weatherRefreshInterval.toInt().toString()
+                                showWeatherRefreshDialog = true
+                            },
+                            bottomAction = {
+                                Slider(
+                                    value = weatherRefreshInterval,
+                                    onValueChange = { weatherRefreshInterval = it },
+                                    valueRange = WEATHER_REFRESH_MIN.toFloat()..WEATHER_REFRESH_MAX.toFloat(),
+                                )
+                            },
+                        )
+                        SuperArrow(
+                            title = stringResource(R.string.weather_card_priority),
+                            summary = stringResource(R.string.weather_card_priority_value, weatherPriority.toInt()),
+                            onClick = {
+                                dialogInput = weatherPriority.toInt().toString()
+                                showWeatherPriorityDialog = true
+                            },
+                            bottomAction = {
+                                Slider(
+                                    value = weatherPriority,
+                                    onValueChange = { weatherPriority = it },
+                                    valueRange = WEATHER_PRIORITY_MIN.toFloat()..WEATHER_PRIORITY_MAX.toFloat(),
+                                )
+                            },
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            TextButton(
+                                text = stringResource(R.string.weather_save),
+                                onClick = {
+                                    scope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            whitelistManager?.setWeatherRefreshInterval(weatherRefreshInterval.toInt())
+                                            whitelistManager?.setWeatherCardPriority(weatherPriority.toInt())
+                                            RootUtils.restartBackScreen()
+                                        }
+                                        Toast.makeText(context, context.getString(R.string.enabled), Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.textButtonColorsPrimary(),
+                            )
+                            TextButton(
+                                text = stringResource(R.string.reset_default),
+                                onClick = {
+                                    weatherRefreshInterval = 30f
+                                    weatherPriority = 100f
+                                    Toast.makeText(context, context.getString(R.string.reset_done), Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+
+            item { SmallTitle(text = stringResource(R.string.section_lyric)) }
+            item {
+                Card(modifier = Modifier.padding(bottom = 12.dp)) {
+                    SuperArrow(
+                        title = stringResource(R.string.lyric_fade_duration),
+                        summary = stringResource(R.string.lyric_fade_duration_value, lyricFadeDuration.toInt()),
+                        onClick = {
+                            dialogInput = lyricFadeDuration.toInt().toString()
+                            showLyricFadeDialog = true
+                        },
+                        bottomAction = {
+                            Slider(
+                                value = lyricFadeDuration,
+                                onValueChange = { lyricFadeDuration = it },
+                                valueRange = LYRIC_FADE_MIN.toFloat()..LYRIC_FADE_MAX.toFloat(),
+                            )
+                        },
+                    )
+                    SuperArrow(
+                        title = stringResource(R.string.lyric_mode_threshold),
+                        summary = stringResource(R.string.lyric_mode_threshold_value, lyricThreshold.toInt()),
+                        onClick = {
+                            dialogInput = lyricThreshold.toInt().toString()
+                            showLyricThresholdDialog = true
+                        },
+                        bottomAction = {
+                            Slider(
+                                value = lyricThreshold,
+                                onValueChange = { lyricThreshold = it },
+                                valueRange = LYRIC_THRESHOLD_MIN_SEC.toFloat()..LYRIC_THRESHOLD_MAX_SEC.toFloat(),
+                            )
+                        },
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        TextButton(
+                            text = stringResource(R.string.lyric_save),
+                            onClick = {
+                                scope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        whitelistManager?.setLyricFadeDuration(lyricFadeDuration.toInt())
+                                        whitelistManager?.setLyricModeThreshold((lyricThreshold * 1000).toInt())
+                                    }
+                                    Toast.makeText(context, context.getString(R.string.enabled), Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                        )
+                        TextButton(
+                            text = stringResource(R.string.reset_default),
+                            onClick = {
+                                lyricFadeDuration = 700f
+                                lyricThreshold = 15f
+                                Toast.makeText(context, context.getString(R.string.reset_done), Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
 
@@ -178,7 +333,7 @@ fun FeaturesPage(
                             Slider(
                                 value = intervalValue,
                                 onValueChange = { intervalValue = it },
-                                valueRange = 1f..300f,
+                                valueRange = KEEP_ALIVE_MIN_SECONDS.toFloat()..KEEP_ALIVE_MAX_SECONDS.toFloat(),
                                 onValueChangeFinished = {
                                     whitelistManager?.setKeepAliveInterval(intervalValue.toInt())
                                     if (keepAlive) {
@@ -227,7 +382,7 @@ fun FeaturesPage(
                             Slider(
                                 value = dpiSliderValue,
                                 onValueChange = { dpiSliderValue = it },
-                                valueRange = 100f..800f,
+                                valueRange = DPI_MIN.toFloat()..DPI_MAX.toFloat(),
                             )
                         },
                     )
@@ -338,7 +493,7 @@ fun FeaturesPage(
             TextButton(
                 text = stringResource(R.string.confirm),
                 onClick = {
-                    val seconds = dialogInput.toIntOrNull()?.coerceIn(1, 300)
+                    val seconds = dialogInput.toIntOrNull()?.coerceIn(KEEP_ALIVE_MIN_SECONDS, KEEP_ALIVE_MAX_SECONDS)
                     if (seconds != null) {
                         intervalValue = seconds.toFloat()
                         whitelistManager?.setKeepAliveInterval(seconds)
@@ -379,11 +534,155 @@ fun FeaturesPage(
             TextButton(
                 text = stringResource(R.string.confirm),
                 onClick = {
-                    val dpi = dialogInput.toIntOrNull()?.coerceIn(100, 800)
+                    val dpi = dialogInput.toIntOrNull()?.coerceIn(DPI_MIN, DPI_MAX)
                     if (dpi != null) {
                         dpiSliderValue = dpi.toFloat()
                     }
                     showDpiDialog = false
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+            )
+        }
+    }
+
+    // 天气刷新间隔输入弹窗
+    SuperDialog(
+        show = showWeatherRefreshDialog,
+        title = stringResource(R.string.weather_refresh_interval),
+        summary = stringResource(R.string.weather_refresh_interval_summary, WEATHER_REFRESH_MIN, WEATHER_REFRESH_MAX),
+        onDismissRequest = { showWeatherRefreshDialog = false },
+    ) {
+        TextField(
+            value = dialogInput,
+            onValueChange = { dialogInput = it.filter { c -> c.isDigit() } },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                text = stringResource(R.string.cancel),
+                onClick = { showWeatherRefreshDialog = false },
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                text = stringResource(R.string.confirm),
+                onClick = {
+                    val minutes = dialogInput.toIntOrNull()?.coerceIn(WEATHER_REFRESH_MIN, WEATHER_REFRESH_MAX)
+                    if (minutes != null) weatherRefreshInterval = minutes.toFloat()
+                    showWeatherRefreshDialog = false
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+            )
+        }
+    }
+
+    // 天气优先级输入弹窗
+    SuperDialog(
+        show = showWeatherPriorityDialog,
+        title = stringResource(R.string.weather_card_priority),
+        summary = stringResource(R.string.weather_card_priority_summary, WEATHER_PRIORITY_MIN, WEATHER_PRIORITY_MAX),
+        onDismissRequest = { showWeatherPriorityDialog = false },
+    ) {
+        TextField(
+            value = dialogInput,
+            onValueChange = { dialogInput = it.filter { c -> c.isDigit() } },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                text = stringResource(R.string.cancel),
+                onClick = { showWeatherPriorityDialog = false },
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                text = stringResource(R.string.confirm),
+                onClick = {
+                    val priority = dialogInput.toIntOrNull()?.coerceIn(WEATHER_PRIORITY_MIN, WEATHER_PRIORITY_MAX)
+                    if (priority != null) weatherPriority = priority.toFloat()
+                    showWeatherPriorityDialog = false
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+            )
+        }
+    }
+
+    // 歌词淡入时长输入弹窗
+    SuperDialog(
+        show = showLyricFadeDialog,
+        title = stringResource(R.string.lyric_fade_duration),
+        summary = stringResource(R.string.lyric_fade_duration_summary, LYRIC_FADE_MIN, LYRIC_FADE_MAX),
+        onDismissRequest = { showLyricFadeDialog = false },
+    ) {
+        TextField(
+            value = dialogInput,
+            onValueChange = { dialogInput = it.filter { c -> c.isDigit() } },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                text = stringResource(R.string.cancel),
+                onClick = { showLyricFadeDialog = false },
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                text = stringResource(R.string.confirm),
+                onClick = {
+                    val ms = dialogInput.toIntOrNull()?.coerceIn(LYRIC_FADE_MIN, LYRIC_FADE_MAX)
+                    if (ms != null) lyricFadeDuration = ms.toFloat()
+                    showLyricFadeDialog = false
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+            )
+        }
+    }
+
+    // 歌词检测阈值输入弹窗
+    SuperDialog(
+        show = showLyricThresholdDialog,
+        title = stringResource(R.string.lyric_mode_threshold),
+        summary = stringResource(R.string.lyric_mode_threshold_summary, LYRIC_THRESHOLD_MIN_SEC, LYRIC_THRESHOLD_MAX_SEC),
+        onDismissRequest = { showLyricThresholdDialog = false },
+    ) {
+        TextField(
+            value = dialogInput,
+            onValueChange = { dialogInput = it.filter { c -> c.isDigit() } },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                text = stringResource(R.string.cancel),
+                onClick = { showLyricThresholdDialog = false },
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                text = stringResource(R.string.confirm),
+                onClick = {
+                    val sec = dialogInput.toIntOrNull()?.coerceIn(LYRIC_THRESHOLD_MIN_SEC, LYRIC_THRESHOLD_MAX_SEC)
+                    if (sec != null) lyricThreshold = sec.toFloat()
+                    showLyricThresholdDialog = false
                 },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.textButtonColorsPrimary(),

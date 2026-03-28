@@ -41,7 +41,15 @@ object MusicTemplatePatch {
     private var titleElement: Any? = null
     private var fadeAnimator: ValueAnimator? = null
     private var templatePatched = false
-    private const val FADE_DURATION_MS = 700L
+
+    private const val LYRIC_FADE_FLAG =
+        "/data/system/theme_magic/users/0/subscreencenter/config/janus_lyric_fade"
+    private const val LYRIC_THRESHOLD_FLAG =
+        "/data/system/theme_magic/users/0/subscreencenter/config/janus_lyric_threshold"
+
+    // Auto-speed: track title changes to detect lyric lines
+    private var lastTitle: String? = null
+    private var lastTitleChangeMs: Long = 0
 
     fun hook(lpparam: XC_LoadPackage.LoadPackageParam) {
         hookManagerInit(lpparam)
@@ -155,24 +163,40 @@ object MusicTemplatePatch {
             XposedBridge.hookAllMethods(cls, "onClientMetadataUpdate",
                 object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
-                        // Second param is MediaMetadata
                         val metadata = param.args.getOrNull(1) as? MediaMetadata ?: return
                         val elem = titleElement ?: return
                         val bundle = try {
                             XposedHelpers.getObjectField(metadata, "mBundle") as? Bundle
                         } catch (_: Throwable) { null } ?: return
 
-                        val speed = bundle.getInt(LyricInjector.MARQUEE_SPEED_KEY, 0)
-                        if (speed > 0) {
-                            XposedHelpers.setIntField(elem, "mMarqueeSpeed", speed)
-                            XposedHelpers.setBooleanField(elem, "mEllipsis", false)
-                        } else {
-                            XposedHelpers.setIntField(elem, "mMarqueeSpeed", 0)
-                            XposedHelpers.setBooleanField(elem, "mEllipsis", true)
-                        }
-                        XposedHelpers.setObjectField(elem, "mTextLayout", null)
+                        val title = bundle.getString(MediaMetadata.METADATA_KEY_TITLE)
+                        if (title == null || title == lastTitle) return
 
-                        // Fade in: animate mAlphaProperty from 0 → 255
+                        val now = android.os.SystemClock.elapsedRealtime()
+                        val elapsed = now - lastTitleChangeMs
+                        lastTitle = title
+                        lastTitleChangeMs = now
+
+                        val explicitSpeed = bundle.getInt(LyricInjector.MARQUEE_SPEED_KEY, 0)
+                        if (explicitSpeed > 0) {
+                            // Explicit speed from LyricInjector (e.g. Apple Music)
+                            applyMarquee(elem, explicitSpeed)
+                        } else if (elapsed in 1..MamlConstants.readIntFlag(LYRIC_THRESHOLD_FLAG, 15000).toLong()) {
+                            // Title changed rapidly → lyric mode, auto-calculate
+                            val autoSpeed = calculateAutoSpeed(
+                                title, elapsed.coerceIn(2000, 8000)
+                            )
+                            if (autoSpeed > 0) {
+                                applyMarquee(elem, autoSpeed)
+                            } else {
+                                applyEllipsis(elem)
+                            }
+                        } else {
+                            // New song or long gap → normal ellipsis
+                            applyEllipsis(elem)
+                        }
+
+                        XposedHelpers.setObjectField(elem, "mTextLayout", null)
                         fadeIn(elem)
                     }
                 }
@@ -182,12 +206,37 @@ object MusicTemplatePatch {
         }
     }
 
+    private fun applyMarquee(elem: Any, speed: Int) {
+        XposedHelpers.setIntField(elem, "mMarqueeSpeed", speed)
+        XposedHelpers.setBooleanField(elem, "mEllipsis", false)
+    }
+
+    private fun applyEllipsis(elem: Any) {
+        XposedHelpers.setIntField(elem, "mMarqueeSpeed", 0)
+        XposedHelpers.setBooleanField(elem, "mEllipsis", true)
+    }
+
+    /**
+     * Calculate marquee speed for text that overflows the element width.
+     * Same formula as [LyricInjector.calculateMarqueeSpeed].
+     */
+    private fun calculateAutoSpeed(text: String, durationMs: Long): Int {
+        val textWidthSr = text.sumOf { ch ->
+            if (ch.code > 0x7F) MamlConstants.FONT_SIZE_SR else MamlConstants.FONT_SIZE_SR * 0.55
+        }
+        val overflowSr = textWidthSr - MamlConstants.ELEM_WIDTH_SR
+        if (overflowSr <= 0) return 0
+        val totalScrollMaml = (overflowSr * MamlConstants.SR) + MamlConstants.MARQUEE_START_OFFSET
+        val effectiveSec = (durationMs - 200).coerceAtLeast(200) / 1000.0
+        return (totalScrollMaml / effectiveSec).toInt().coerceIn(1, 1000)
+    }
+
     private fun fadeIn(elem: Any) {
         try {
             val alphaProp = XposedHelpers.getObjectField(elem, "mAlphaProperty") ?: return
             fadeAnimator?.cancel()
             val animator = ValueAnimator.ofInt(0, 255).apply {
-                duration = FADE_DURATION_MS
+                duration = MamlConstants.readIntFlag(LYRIC_FADE_FLAG, 700).toLong()
                 interpolator = DecelerateInterpolator()
                 addUpdateListener { anim ->
                     try {

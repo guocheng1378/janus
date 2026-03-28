@@ -124,6 +124,22 @@ fun HomePage(
                 )
             }
         }
+        Card(modifier = Modifier.padding(bottom = 12.dp)) {
+            SuperArrow(
+                title = stringResource(R.string.update_support),
+                endActions = {
+                    Text(
+                        text = "ifdian.net/a/janus",
+                        color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                    )
+                },
+                onClick = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://ifdian.net/a/janus"))
+                    )
+                },
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
