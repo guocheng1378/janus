@@ -53,6 +53,9 @@ fun OtherPage(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     var showCleanupDialog by remember { mutableStateOf(false) }
 
+    val cleanupSuccessMsg = stringResource(R.string.cleanup_success)
+    val cleanupFailedMsg = stringResource(R.string.cleanup_failed)
+
     Scaffold(
         topBar = {
             SmallTopAppBar(
@@ -95,42 +98,39 @@ fun OtherPage(onBack: () -> Unit) {
                 onClick = { showCleanupDialog = true },
             )
         }
-    }
 
-    val cleanupSuccessMsg = stringResource(R.string.cleanup_success)
-    val cleanupFailedMsg = stringResource(R.string.cleanup_failed)
-
-    SuperDialog(
-        show = showCleanupDialog,
-        title = stringResource(R.string.cleanup_dialog_title),
-        summary = stringResource(R.string.cleanup_dialog_summary),
-        onDismissRequest = { showCleanupDialog = false },
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        SuperDialog(
+            show = showCleanupDialog,
+            title = stringResource(R.string.cleanup_dialog_title),
+            summary = stringResource(R.string.cleanup_dialog_summary),
+            onDismissRequest = { showCleanupDialog = false },
         ) {
-            TextButton(
-                text = stringResource(R.string.cancel),
-                onClick = { showCleanupDialog = false },
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(
-                text = stringResource(R.string.confirm),
-                onClick = {
-                    showCleanupDialog = false
-                    scope.launch {
-                        val ok = withContext(Dispatchers.IO) { JanusCleanup.cleanAll() }
-                        Toast.makeText(
-                            context,
-                            if (ok) cleanupSuccessMsg else cleanupFailedMsg,
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = { showCleanupDialog = false },
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    text = stringResource(R.string.confirm),
+                    onClick = {
+                        showCleanupDialog = false
+                        scope.launch {
+                            val ok = withContext(Dispatchers.IO) { JanusCleanup.cleanAll() }
+                            Toast.makeText(
+                                context,
+                                if (ok) cleanupSuccessMsg else cleanupFailedMsg,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
         }
     }
 }

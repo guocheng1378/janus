@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -41,7 +42,6 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.extra.SuperArrow
 import top.yukonga.miuix.kmp.extra.SuperDialog
-import top.yukonga.miuix.kmp.extra.SuperRadioButton
 import top.yukonga.miuix.kmp.extra.SuperSwitch
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -93,6 +93,7 @@ fun CastingPage(
                 },
             )
         },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -252,125 +253,115 @@ fun CastingPage(
                     }
                 }
         }
-    }
 
-    // 常亮间隔输入弹窗
-    SuperDialog(
-        show = showIntervalDialog,
-        title = stringResource(R.string.keep_alive_interval),
-        summary = stringResource(R.string.keep_alive_interval_dialog_summary),
-        onDismissRequest = { showIntervalDialog = false },
-    ) {
-        TextField(
-            value = dialogInput,
-            onValueChange = { dialogInput = it.filter { c -> c.isDigit() } },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        SuperDialog(
+            show = showIntervalDialog,
+            title = stringResource(R.string.keep_alive_interval),
+            summary = stringResource(R.string.keep_alive_interval_dialog_summary),
+            onDismissRequest = { showIntervalDialog = false },
         ) {
-            TextButton(
-                text = stringResource(R.string.cancel),
-                onClick = { showIntervalDialog = false },
-                modifier = Modifier.weight(1f),
+            TextField(
+                value = dialogInput,
+                onValueChange = { dialogInput = it.filter { c -> c.isDigit() } },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             )
-            TextButton(
-                text = stringResource(R.string.confirm),
-                onClick = {
-                    val seconds = dialogInput.toIntOrNull()?.coerceIn(KEEP_ALIVE_MIN_SECONDS, KEEP_ALIVE_MAX_SECONDS)
-                    if (seconds != null) {
-                        intervalValue = seconds.toFloat()
-                        whitelistManager?.setKeepAliveInterval(seconds)
-                        if (keepAlive) {
-                            ScreenKeepAliveService.start(context, seconds)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = { showIntervalDialog = false },
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    text = stringResource(R.string.confirm),
+                    onClick = {
+                        val seconds = dialogInput.toIntOrNull()?.coerceIn(KEEP_ALIVE_MIN_SECONDS, KEEP_ALIVE_MAX_SECONDS)
+                        if (seconds != null) {
+                            intervalValue = seconds.toFloat()
+                            whitelistManager?.setKeepAliveInterval(seconds)
+                            if (keepAlive) {
+                                ScreenKeepAliveService.start(context, seconds)
+                            }
                         }
-                    }
-                    showIntervalDialog = false
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-            )
+                        showIntervalDialog = false
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
         }
-    }
 
-    // DPI 输入弹窗
-    SuperDialog(
-        show = showDpiDialog,
-        title = stringResource(R.string.rear_dpi),
-        summary = stringResource(R.string.dpi_dialog_summary),
-        onDismissRequest = { showDpiDialog = false },
-    ) {
-        TextField(
-            value = dialogInput,
-            onValueChange = { dialogInput = it.filter { c -> c.isDigit() } },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        SuperDialog(
+            show = showDpiDialog,
+            title = stringResource(R.string.rear_dpi),
+            summary = stringResource(R.string.dpi_dialog_summary),
+            onDismissRequest = { showDpiDialog = false },
+        ) {
+            TextField(
+                value = dialogInput,
+                onValueChange = { dialogInput = it.filter { c -> c.isDigit() } },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = { showDpiDialog = false },
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    text = stringResource(R.string.confirm),
+                    onClick = {
+                        val dpi = dialogInput.toIntOrNull()?.coerceIn(DPI_MIN, DPI_MAX)
+                        if (dpi != null) {
+                            dpiSliderValue = dpi.toFloat()
+                        }
+                        showDpiDialog = false
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
+        }
+
+        SuperDialog(
+            show = showRotationDialog,
+            title = stringResource(R.string.cast_rotation),
+            onDismissRequest = { showRotationDialog = false },
         ) {
             TextButton(
-                text = stringResource(R.string.cancel),
-                onClick = { showDpiDialog = false },
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(
-                text = stringResource(R.string.confirm),
-                onClick = {
-                    val dpi = dialogInput.toIntOrNull()?.coerceIn(DPI_MIN, DPI_MAX)
-                    if (dpi != null) {
-                        dpiSliderValue = dpi.toFloat()
-                    }
-                    showDpiDialog = false
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-            )
-        }
-    }
-
-    // 投屏旋转选择弹窗
-    SuperDialog(
-        show = showRotationDialog,
-        title = stringResource(R.string.cast_rotation),
-        onDismissRequest = { showRotationDialog = false },
-    ) {
-        Card(modifier = Modifier.padding(bottom = 8.dp)) {
-            SuperRadioButton(
-                title = stringResource(R.string.cast_rotation_none),
-                selected = castRotation == 0,
+                text = stringResource(R.string.cast_rotation_none),
                 onClick = {
                     castRotation = 0
                     whitelistManager?.setCastRotation(0)
                     showRotationDialog = false
                 },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                colors = if (castRotation == 0) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors(),
             )
-        }
-        Card(modifier = Modifier.padding(bottom = 8.dp)) {
-            SuperRadioButton(
-                title = stringResource(R.string.cast_rotation_left),
-                selected = castRotation == 1,
+            TextButton(
+                text = stringResource(R.string.cast_rotation_left),
                 onClick = {
                     castRotation = 1
                     whitelistManager?.setCastRotation(1)
                     showRotationDialog = false
                 },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                colors = if (castRotation == 1) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors(),
             )
-        }
-        Card {
-            SuperRadioButton(
-                title = stringResource(R.string.cast_rotation_right),
-                selected = castRotation == 3,
+            TextButton(
+                text = stringResource(R.string.cast_rotation_right),
                 onClick = {
                     castRotation = 3
                     whitelistManager?.setCastRotation(3)
                     showRotationDialog = false
                 },
+                modifier = Modifier.fillMaxWidth(),
+                colors = if (castRotation == 3) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors(),
             )
         }
     }

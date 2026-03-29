@@ -185,63 +185,61 @@ fun CardDetailPage(
                     )
             }
         }
-    }
 
-    // ── Dialogs ─────────────────────────────────────────────────
-
-    SuperDialog(
-        show = showRefreshDialog,
-        title = stringResource(R.string.card_refresh_interval),
-        summary = stringResource(R.string.card_refresh_interval_summary, REFRESH_MIN, REFRESH_MAX),
-        onDismissRequest = { showRefreshDialog = false },
-    ) {
-        TextField(value = dialogInput, onValueChange = { dialogInput = it })
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(
-                text = stringResource(R.string.cancel),
-                onClick = { showRefreshDialog = false },
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(
-                text = stringResource(R.string.confirm),
-                onClick = {
-                    val v = dialogInput.toIntOrNull()
-                    if (v != null && v in REFRESH_MIN..REFRESH_MAX) {
-                        refreshInterval = v.toFloat()
-                    }
-                    showRefreshDialog = false
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-            )
+        SuperDialog(
+            show = showRefreshDialog,
+            title = stringResource(R.string.card_refresh_interval),
+            summary = stringResource(R.string.card_refresh_interval_summary, REFRESH_MIN, REFRESH_MAX),
+            onDismissRequest = { showRefreshDialog = false },
+        ) {
+            TextField(value = dialogInput, onValueChange = { dialogInput = it })
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = { showRefreshDialog = false },
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    text = stringResource(R.string.confirm),
+                    onClick = {
+                        val v = dialogInput.toIntOrNull()
+                        if (v != null && v in REFRESH_MIN..REFRESH_MAX) {
+                            refreshInterval = v.toFloat()
+                        }
+                        showRefreshDialog = false
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
         }
-    }
 
-    SuperDialog(
-        show = showPriorityDialog,
-        title = stringResource(R.string.card_priority),
-        summary = stringResource(R.string.card_priority_summary, PRIORITY_MIN, PRIORITY_MAX),
-        onDismissRequest = { showPriorityDialog = false },
-    ) {
-        TextField(value = dialogInput, onValueChange = { dialogInput = it })
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(
-                text = stringResource(R.string.cancel),
-                onClick = { showPriorityDialog = false },
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(
-                text = stringResource(R.string.confirm),
-                onClick = {
-                    val v = dialogInput.toIntOrNull()
-                    if (v != null && v in PRIORITY_MIN..PRIORITY_MAX) {
-                        priority = v.toFloat()
-                    }
-                    showPriorityDialog = false
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.textButtonColorsPrimary(),
-            )
+        SuperDialog(
+            show = showPriorityDialog,
+            title = stringResource(R.string.card_priority),
+            summary = stringResource(R.string.card_priority_summary, PRIORITY_MIN, PRIORITY_MAX),
+            onDismissRequest = { showPriorityDialog = false },
+        ) {
+            TextField(value = dialogInput, onValueChange = { dialogInput = it })
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = { showPriorityDialog = false },
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    text = stringResource(R.string.confirm),
+                    onClick = {
+                        val v = dialogInput.toIntOrNull()
+                        if (v != null && v in PRIORITY_MIN..PRIORITY_MAX) {
+                            priority = v.toFloat()
+                        }
+                        showPriorityDialog = false
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            }
         }
     }
 
