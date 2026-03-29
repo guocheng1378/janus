@@ -21,9 +21,7 @@ local.properties
 .DS_Store
 
 # Local directories
-/_workspaces/
-/_documents/
-/_scripts/
+/_*/
 
 docs/
 openspec/
