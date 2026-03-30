@@ -9,7 +9,7 @@
 **English** | [简体中文](README_CN.md)
 
 [![Android](https://img.shields.io/badge/Android-15+-green?logo=android)](https://developer.android.com)
-[![LSPosed](https://img.shields.io/badge/Xposed-API%2082-blue?logo=lsposed)](https://github.com/LSPosed/LSPosed)
+[![LSPosed](https://img.shields.io/badge/libxposed-API%20101-blue?logo=lsposed)](https://github.com/libxposed/api)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-purple?logo=kotlin)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-GPL--3.0-orange?logo=gnu)](LICENSE)
 
@@ -30,8 +30,7 @@ Janus is an LSPosed module for Xiaomi phones with a rear screen, designed to enh
 - **Screen Casting Settings** — Screen casting rotation control, keep rear screen on during casting
 - **Smart Assistant Custom Cards** — Import and manage custom MAML cards for the Smart Assistant panel, with drag-and-drop reordering, per-card enable/disable, priority and refresh interval settings
 - **Custom Music Card** — Replace the stock music card template with a custom MAML template, with optional lyric scrolling patch
-- **Apple Music Rear Screen Lyrics** — Display timed lyrics from Apple Music on the rear screen with smooth progress-synced marquee scrolling and fade-in transitions
-- **Luna Music Rear Screen Lyrics** — Force-enable Bluetooth lyrics in Luna Music so lyrics display on the rear screen via MediaSession
+- **Lyric Hook Rules** — Per-app lyric hook rules via JSON rule engine. Import community-provided rules to display timed lyrics (TTML/LRC) from any music app on the rear screen. Manage rules per app with import, enable/disable, and delete
 - **Telemetry Blocking** — Intercept `DailyTrackReceiver` to block data reporting
 - **Quick Switch** — Quick settings tile for one-tap casting to rear screen
 - **Hide Launcher Icon** — Hide app icon from launcher, open via LSPosed module manager
@@ -51,8 +50,8 @@ Janus is an LSPosed module for Xiaomi phones with a rear screen, designed to enh
 | App Name          | Package Name                    |
 |:------------------|:--------------------------------|
 | Rear Display | com.xiaomi.subscreencenter      |
-| Apple Music | com.apple.android.music |
-| Luna Music | com.luna.music |
+
+Additional scopes (e.g. music apps for lyric hooks) are added dynamically via `requestScope()` when importing hook rules.
 
 ## Building
 
@@ -78,12 +77,15 @@ Janus is an LSPosed module for Xiaomi phones with a rear screen, designed to enh
 
 ```
 app/src/main/kotlin/org/pysh/janus/
-├── hook/           # Xposed Hook entry and logic
-├── data/           # Data management (whitelist, app scanning, SharedPreferences)
-├── service/        # Foreground keep-alive service, quick settings tile
-├── ui/             # Compose UI pages (home, apps, features, settings, about, etc.)
-├── util/           # Utilities (Root, Display)
+├── hook/               # Xposed Hook entry and infrastructure
+│   └── engine/         # JSON rule engine, action executor, engine plugins
+├── data/               # Data management (whitelist, hook rules, app scanning)
+├── service/            # Foreground keep-alive service, quick settings tile
+├── ui/                 # Compose UI pages (home, apps, features, settings, etc.)
+├── util/               # Utilities (Root, Display)
 └── MainActivity.kt
+app/src/main/assets/
+└── rules/              # Built-in JSON hook rules
 ```
 
 ## Support

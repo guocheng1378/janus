@@ -15,8 +15,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val isServiceBound by (JanusApplication.instance?.isServiceBound
-                ?: androidx.compose.runtime.mutableStateOf(false))
+            val fallback = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+            val isServiceBound by (JanusApplication.instance?.isServiceBound ?: fallback)
             MainScreen(isModuleActive = isServiceBound)
         }
     }

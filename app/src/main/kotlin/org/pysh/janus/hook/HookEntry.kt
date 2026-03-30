@@ -11,6 +11,7 @@ import org.pysh.janus.hook.engine.engines.SystemCardEngine
 import org.pysh.janus.hook.engine.engines.WallpaperKeepAliveEngine
 import org.pysh.janus.hook.engine.engines.WhitelistEngine
 
+@android.annotation.SuppressLint("NewApi")
 class HookEntry : XposedModule() {
 
     companion object {
