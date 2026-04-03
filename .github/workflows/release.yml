@@ -29,15 +29,34 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Decode keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/release.jks
+        id: keystore
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/release.jks 2>/dev/null
+            if keytool -list -keystore ${{ github.workspace }}/release.jks -storepass "${{ secrets.KEYSTORE_PASSWORD }}" >/dev/null 2>&1; then
+              echo "valid=true" >> "$GITHUB_OUTPUT"
+              echo "✅ Keystore decoded and validated"
+            else
+              echo "valid=false" >> "$GITHUB_OUTPUT"
+              echo "⚠️ Keystore invalid, will use debug signing"
+            fi
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ No keystore secret, will use debug signing"
+          fi
 
-      - name: Build release APK
+      - name: Build release APK (signed)
+        if: steps.keystore.outputs.valid == 'true'
         env:
           KEYSTORE_FILE: ${{ github.workspace }}/release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease
+
+      - name: Build release APK (debug signed)
+        if: steps.keystore.outputs.valid != 'true'
+        run: ./gradlew assembleDebug
 
       - name: Get version from tag
         id: version
@@ -48,8 +67,15 @@ jobs:
             echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Rename APK
+      - name: Rename APK (release)
+        if: steps.keystore.outputs.valid == 'true'
         run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Janus-${{ steps.version.outputs.name }}-arm64-v8a.apk
+
+      - name: Rename APK (debug)
+        if: steps.keystore.outputs.valid != 'true'
+        run: |
+          mkdir -p app/build/outputs/apk/release
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/Janus-${{ steps.version.outputs.name }}-arm64-v8a-debug.apk
 
       - name: Create tag (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch'
