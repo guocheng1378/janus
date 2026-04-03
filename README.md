@@ -4,8 +4,6 @@
 
 # Janus
 
-> ⚠️ **这是 [penguinyzsh/janus](https://github.com/penguinyzsh/janus) 的 fork 版本，修复了多个 bug（管道死锁、主线程阻塞、命令注入、线程安全等）。详见 [commit 历史](https://github.com/guocheng1378/janus/commits/main)。**
-
 ### Xiaomi Rear Screen Enhancement LSPosed Module
 
 **English** | [简体中文](README_CN.md)
