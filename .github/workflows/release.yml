@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.1.2)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -36,10 +41,23 @@ jobs:
 
       - name: Get version from tag
         id: version
-        run: echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Rename APK
         run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Janus-${{ steps.version.outputs.name }}-arm64-v8a.apk
+
+      - name: Create tag (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.name }}" -m "v${{ steps.version.outputs.name }}"
+          git push origin "v${{ steps.version.outputs.name }}"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
