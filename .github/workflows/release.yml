@@ -88,7 +88,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Janus ${{ github.ref_name }}
+          tag_name: v${{ steps.version.outputs.name }}
+          name: Janus v${{ steps.version.outputs.name }}
           generate_release_notes: true
           files: app/build/outputs/apk/release/Janus-*.apk
 
@@ -114,12 +115,13 @@ jobs:
             -d '{"homepage":"https://github.com/penguinyzsh/janus"}'
 
       - name: Publish to Xposed Modules Repo
+        if: steps.keystore.outputs.valid == 'true'
         uses: softprops/action-gh-release@v2
         with:
           repository: Xposed-Modules-Repo/org.pysh.janus
           token: ${{ secrets.XPOSED_REPO_TOKEN }}
-          tag_name: ${{ github.ref_name }}
-          name: Janus ${{ github.ref_name }}
+          tag_name: v${{ steps.version.outputs.name }}
+          name: Janus v${{ steps.version.outputs.name }}
           generate_release_notes: false
-          body: "https://github.com/penguinyzsh/janus/releases/tag/${{ github.ref_name }}"
+          body: "https://github.com/penguinyzsh/janus/releases/tag/v${{ steps.version.outputs.name }}"
           files: app/build/outputs/apk/release/Janus-*.apk
