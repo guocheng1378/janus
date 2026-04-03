@@ -5,6 +5,7 @@
   <Var name="isDeep" type="number" expression="#isDeep"/>
   <Var name="isDisplayDefaultBg" type="number" expression="#isDisplayDefaultBg"/>
   <Var name="lyricText" type="string" expression="@signatureText"/>
+  <Var name="prevLyric" type="string" expression="''" const="true"/>
   <Var name="hasLyric" type="number" expression="(! strIsEmpty(@signatureText))"/>
   <Var name="textColor" type="string" expression="@textColor"/>
   <Var name="mainColor" type="string" expression="ifelse((! strIsEmpty(@textColor)),@textColor,ifelse(#isDeep,'#ffffff','#1a1a1a'))"/>
@@ -26,7 +27,6 @@
   <Var name="fontBold" type="number" expression="500"/>
   <Var name="fontRegular" type="number" expression="400"/>
   <Var name="timeFmt" type="string" expression="ifelse((#time_format == 1),'HH:mm','hh:mm')"/>
-  <Var name="timeFmtFull" type="string" expression="ifelse((#time_format == 1),'HH:mm:ss','hh:mm:ss')"/>
   <Var name="dateFmt" type="string" expression="'yyyy年M月d日 EEEE'"/>
 
   <!-- Background: always visible -->
@@ -40,7 +40,8 @@
           color="@subColor"
           textExp="formatDate(@timeFmt,#time_sys)"
           textAlign="left"/>
-    <Group x="#marginX" w="#contentW">
+    <Group x="#marginX" w="#contentW" clipChildren="true">
+      <!-- Current lyric: slides up from below -->
       <Text x="0"
             y="(#vh * 0.32)"
             w="#contentW"
@@ -54,7 +55,23 @@
             multiLine="true"
             ellipsis="true"
             spacingMult="1.4"
-            name="lyric_main"/>
+            name="lyric_current"/>
+      <!-- Previous lyric: slides up and fades out -->
+      <Text x="0"
+            y="(#vh * 0.32)"
+            w="#contentW"
+            size="#lyricSize"
+            fontPath="@font"
+            fontPathWeight="#fontBold"
+            color="@mainColor"
+            textExp="@prevLyric"
+            textAlign="center"
+            lineClamp="4"
+            multiLine="true"
+            ellipsis="true"
+            spacingMult="1.4"
+            alpha="0"
+            name="lyric_prev"/>
     </Group>
     <Rectangle x="#marginX" y="(#vh - 60 * #scale)"
                w="#contentW" h="1"
@@ -98,22 +115,33 @@
           textAlign="right"/>
   </Group>
 
-  <FolmeState name="fade_in" alpha="200" scaleX="0.98" scaleY="0.98"/>
-  <FolmeState name="fade_out" alpha="0"/>
-  <FolmeConfig name="fade_cfg" ease="-2, 1, 0.65"/>
+  <!-- Animation states -->
+  <FolmeState name="lyric_in" alpha="255" y="0"/>
+  <FolmeState name="lyric_out" alpha="0" y="(-40 * #scale)"/>
+  <FolmeState name="idle" alpha="0" y="(40 * #scale)"/>
+  <FolmeConfig name="lyric_ease" ease="-2, 1.1, 0.55"/>
+
   <ExternalCommands>
     <Trigger action="init">
       <IfCommand ifCondition="eqs(@isPreviewMode,'true')">
         <Consequent><FrameRateCommand rate="120"/></Consequent>
         <Alternate><FrameRateCommand rate="0"/></Alternate>
       </IfCommand>
+      <VariableCommand name="prevLyric" expression="@signatureText" type="string"/>
     </Trigger>
     <Trigger action="resume">
       <FrameRateCommand rate="120"/>
-      <FolmeCommand target="lyric_main" config="'fade_cfg'" states="'fade_in'" command="to"/>
     </Trigger>
     <Trigger action="pause">
       <FrameRateCommand rate="0"/>
+    </Trigger>
+    <!-- Lyric change: slide old up, slide new in from below -->
+    <Trigger action="lyric_changed">
+      <FolmeCommand target="lyric_prev" config="'lyric_ease'" states="'lyric_in'" command="setTo"/>
+      <FolmeCommand target="lyric_prev" config="'lyric_ease'" states="'lyric_out'" command="to"/>
+      <FolmeCommand target="lyric_current" config="'lyric_ease'" states="'idle'" command="setTo"/>
+      <FolmeCommand target="lyric_current" config="'lyric_ease'" states="'lyric_in'" command="to"/>
+      <VariableCommand name="prevLyric" expression="@signatureText" type="string"/>
     </Trigger>
   </ExternalCommands>
 </Widget>
