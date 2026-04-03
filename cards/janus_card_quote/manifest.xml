@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Widget name="每日一句" frameRate="0" scaleByDensity="false" screenWidth="960" version="1"
+         useVariableUpdater="HyperMaterial,DateTime.Minute">
+  <Var name="isDeep" type="number" expression="#isDeep"/>
+  <Var name="mainColor" type="string" expression="ifelse(#isDeep,'#ffffff','#1a1a1a')"/>
+  <Var name="subColor" type="string" expression="ifelse(#isDeep,'#77ffffff','#771a1a1a')"/>
+  <Var name="dimColor" type="string" expression="ifelse(#isDeep,'#44ffffff','#441a1a1a')"/>
+  <Var name="bgColor" type="string" expression="ifelse(#isDeep,'#000000','#ffffff')"/>
+  <Var name="accentColor" type="string" expression="ifelse(#isDeep,'#aabbff','#4466cc')"/>
+  <Var name="borderColor" type="string" expression="ifelse(#isDeep,'#22ffffff','#22000000')"/>
+
+  <Var name="vw" type="number" expression="#view_width"/>
+  <Var name="vh" type="number" expression="#view_height"/>
+  <Var name="scale" type="number" expression="(#vw / 960)"/>
+  <Var name="marginX" type="number" expression="(60 * #scale)"/>
+  <Var name="contentW" type="number" expression="(#vw - (#marginX * 2))"/>
+  <Var name="font" type="string" expression="'/system/fonts/MiSansVF.ttf'"/>
+
+  <!-- Hour number for quote selection -->
+  <Var name="hour" type="number" expression="(#time_sys / 3600000 % 24)"/>
+
+  <!-- Time: horizontal compact -->
+  <Text x="#marginX" y="(30 * #scale)"
+        w="#contentW" size="(16 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@dimColor"
+        textExp="ifelse((#time_format == 1),formatDate('HH:mm:ss',#time_sys),formatDate('hh:mm:ss a',#time_sys))"
+        textAlign="right"/>
+
+  <!-- Accent bar -->
+  <Rectangle x="#marginX" y="(#vh * 0.22)"
+             w="(4 * #scale)" h="(80 * #scale)"
+             fillColor="@accentColor"/>
+
+  <!-- Quote text - changes with hour -->
+  <Text x="(#marginX + 24 * #scale)" y="(#vh * 0.22)"
+        w="(#contentW - 24 * #scale)" size="(32 * #scale)"
+        fontPath="@font" fontPathWeight="500"
+        color="@mainColor"
+        textExp="ifelse((#hour &lt; 6),'夜深了，早点休息',ifelse((#hour &lt; 9),'早安，新的一天',ifelse((#hour &lt; 12),'上午好，元气满满',ifelse((#hour &lt; 14),'午安，好好吃饭',ifelse((#hour &lt; 18),'下午好，继续加油',ifelse((#hour &lt; 21),'傍晚了，放松一下','晚上好，享受时光'))))))"
+        textAlign="left"
+        lineClamp="2"
+        multiLine="true"
+        spacingMult="1.5"/>
+
+  <!-- Subtitle -->
+  <Text x="(#marginX + 24 * #scale)" y="(#vh * 0.22 + 100 * #scale)"
+        w="(#contentW - 24 * #scale)" size="(16 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@subColor"
+        textExp="ifelse((#hour &lt; 6),'身体是革命的本钱',ifelse((#hour &lt; 9),'今天也要努力呀',ifelse((#hour &lt; 12),'专注当下，做好每件事',ifelse((#hour &lt; 14),'下午还有很长的路',ifelse((#hour &lt; 18),'离下班又近了一步',ifelse((#hour &lt; 21),'给自己一点奖励','明天会更好'))))))"
+        textAlign="left"/>
+
+  <!-- Divider -->
+  <Rectangle x="#marginX" y="(#vh * 0.55)"
+             w="#contentW" h="(1 * #scale)"
+             fillColor="@borderColor"/>
+
+  <!-- Date info -->
+  <Text x="#marginX" y="(#vh * 0.58)"
+        w="#contentW" size="(48 * #scale)"
+        fontPath="@font" fontPathWeight="700"
+        color="@mainColor"
+        textExp="formatDate('M月d日',#time_sys)"
+        textAlign="left"/>
+
+  <Text x="#marginX" y="(#vh * 0.58 + 60 * #scale)"
+        w="#contentW" size="(18 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@subColor"
+        textExp="formatDate('yyyy · EEEE',#time_sys)"
+        textAlign="left"/>
+
+  <!-- Bottom brand -->
+  <Rectangle x="#marginX" y="(#vh - 50 * #scale)"
+             w="#contentW" h="(1 * #scale)"
+             fillColor="@borderColor"/>
+  <Text x="#marginX" y="(#vh - 38 * #scale)"
+        w="#contentW" size="(11 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@dimColor"
+        text="JANUS · QUOTE"
+        textAlign="right"/>
+</Widget>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Widget name="点阵时钟" frameRate="0" scaleByDensity="false" screenWidth="960" version="1"
+         useVariableUpdater="HyperMaterial,DateTime.Minute">
+  <Var name="isDeep" type="number" expression="#isDeep"/>
+  <Var name="mainColor" type="string" expression="ifelse(#isDeep,'#ffffff','#1a1a1a')"/>
+  <Var name="subColor" type="string" expression="ifelse(#isDeep,'#66ffffff','#661a1a1a')"/>
+  <Var name="dimColor" type="string" expression="ifelse(#isDeep,'#33ffffff','#331a1a1a')"/>
+  <Var name="bgColor" type="string" expression="ifelse(#isDeep,'#000000','#ffffff')"/>
+  <Var name="dotColor" type="string" expression="ifelse(#isDeep,'#ff6b6b','#ff4444')"/>
+
+  <Var name="vw" type="number" expression="#view_width"/>
+  <Var name="vh" type="number" expression="#view_height"/>
+  <Var name="scale" type="number" expression="(#vw / 960)"/>
+  <Var name="marginX" type="number" expression="(50 * #scale)"/>
+  <Var name="contentW" type="number" expression="(#vw - (#marginX * 2))"/>
+  <Var name="font" type="string" expression="'/system/fonts/MiSansVF.ttf'"/>
+
+  <!-- Background -->
+  <Rectangle w="#vw" h="#vh" fillColor="@bgColor"/>
+
+  <!-- Time: hour -->
+  <Text x="#marginX" y="(#vh * 0.20)"
+        w="(#contentW * 0.42)" size="(140 * #scale)"
+        fontPath="@font" fontPathWeight="700"
+        color="@mainColor"
+        textExp="ifelse((#time_format == 1),formatDate('HH',#time_sys),formatDate('hh',#time_sys))"
+        textAlign="right"/>
+
+  <!-- Dot separator - two colored squares -->
+  <Rectangle x="(#vw / 2 - 12 * #scale)" y="(#vh * 0.20 + 35 * #scale)"
+             w="(10 * #scale)" h="(10 * #scale)"
+             fillColor="@dotColor"/>
+  <Rectangle x="(#vw / 2 - 12 * #scale)" y="(#vh * 0.20 + 75 * #scale)"
+             w="(10 * #scale)" h="(10 * #scale)"
+             fillColor="@dotColor"/>
+
+  <!-- Time: minute -->
+  <Text x="(#vw / 2 + 15 * #scale)" y="(#vh * 0.20)"
+        w="(#contentW * 0.42)" size="(140 * #scale)"
+        fontPath="@font" fontPathWeight="700"
+        color="@mainColor"
+        textExp="formatDate('mm',#time_sys)"
+        textAlign="left"/>
+
+  <!-- Thin line under time -->
+  <Rectangle x="#marginX" y="(#vh * 0.20 + 160 * #scale)"
+             w="#contentW" h="(1 * #scale)"
+             fillColor="@dimColor"/>
+
+  <!-- Date -->
+  <Text x="#marginX" y="(#vh * 0.20 + 180 * #scale)"
+        w="#contentW" size="(20 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@subColor"
+        textExp="formatDate('yyyy年M月d日',#time_sys)"
+        textAlign="left"/>
+
+  <!-- Weekday -->
+  <Text x="#marginX" y="(#vh * 0.20 + 210 * #scale)"
+        w="#contentW" size="(16 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@dimColor"
+        textExp="formatDate('EEEE',#time_sys)"
+        textAlign="left"/>
+
+  <!-- AM/PM indicator -->
+  <Group visibility="(#time_format != 1)">
+    <Text x="#marginX" y="(#vh * 0.20 + 250 * #scale)"
+          w="#contentW" size="(16 * #scale)"
+          fontPath="@font" fontPathWeight="500"
+          color="@dotColor"
+          textExp="formatDate('a',#time_sys)"
+          textAlign="left"/>
+  </Group>
+
+  <!-- Bottom: seconds bar -->
+  <Rectangle x="#marginX" y="(#vh - 80 * #scale)"
+             w="#contentW" h="(1 * #scale)"
+             fillColor="@dimColor"/>
+  <Text x="#marginX" y="(#vh - 70 * #scale)"
+        w="#contentW" size="(14 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@dimColor"
+        textExp="concat(formatDate('ss',#time_sys),'s')"
+        textAlign="right"/>
+</Widget>

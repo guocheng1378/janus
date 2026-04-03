@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Widget name="双行歌词" frameRate="0" scaleByDensity="false" screenWidth="960" version="1"
+         useVariableUpdater="HyperMaterial,DateTime.Minute">
+  <Var name="isDeep" type="number" expression="#isDeep"/>
+  <Var name="mainColor" type="string" expression="ifelse(#isDeep,'#ffffff','#1a1a1a')"/>
+  <Var name="subColor" type="string" expression="ifelse(#isDeep,'#55ffffff','#551a1a1a')"/>
+  <Var name="dimColor" type="string" expression="ifelse(#isDeep,'#33ffffff','#331a1a1a')"/>
+  <Var name="bgColor" type="string" expression="ifelse(#isDeep,'#000000','#ffffff')"/>
+  <Var name="borderColor" type="string" expression="ifelse(#isDeep,'#22ffffff','#22000000')"/>
+
+  <Var name="vw" type="number" expression="#view_width"/>
+  <Var name="vh" type="number" expression="#view_height"/>
+  <Var name="scale" type="number" expression="(#vw / 960)"/>
+  <Var name="marginX" type="number" expression="(60 * #scale)"/>
+  <Var name="contentW" type="number" expression="(#vw - (#marginX * 2))"/>
+  <Var name="font" type="string" expression="'/system/fonts/MiSansVF.ttf'"/>
+
+  <Var name="lyricText" type="string" expression="@signatureText"/>
+  <Var name="hasLyric" type="number" expression="(! strIsEmpty(@signatureText))"/>
+
+  <!-- Background -->
+  <Rectangle w="#vw" h="#vh" fillColor="@bgColor"/>
+
+  <!-- ── Playing: show lyric ── -->
+  <Group visibility="#hasLyric">
+    <!-- Small time top left -->
+    <Text x="#marginX" y="(30 * #scale)"
+          w="#contentW" size="(16 * #scale)"
+          fontPath="@font" fontPathWeight="400"
+          color="@dimColor"
+          textExp="ifelse((#time_format == 1),formatDate('HH:mm',#time_sys),formatDate('hh:mm',#time_sys))"
+          textAlign="left"/>
+
+    <!-- Current lyric - big, centered -->
+    <Text x="#marginX" y="(#vh * 0.30)"
+          w="#contentW" size="(44 * #scale)"
+          fontPath="@font" fontPathWeight="500"
+          color="@mainColor"
+          textExp="@lyricText"
+          textAlign="center"
+          lineClamp="3"
+          multiLine="true"
+          ellipsis="true"
+          spacingMult="1.5"/>
+
+    <!-- Dot separator -->
+    <Rectangle x="(#vw / 2 - 3 * #scale)" y="(#vh * 0.58)"
+               w="(6 * #scale)" h="(6 * #scale)"
+               fillColor="@subColor"/>
+
+    <!-- Hint text -->
+    <Text x="#marginX" y="(#vh * 0.63)"
+          w="#contentW" size="(14 * #scale)"
+          fontPath="@font" fontPathWeight="400"
+          color="@subColor"
+          text="正在播放"
+          textAlign="center"/>
+
+    <!-- Bottom brand -->
+    <Rectangle x="#marginX" y="(#vh - 50 * #scale)"
+               w="#contentW" h="(1 * #scale)"
+               fillColor="@borderColor"/>
+    <Text x="#marginX" y="(#vh - 38 * #scale)"
+          w="#contentW" size="(11 * #scale)"
+          fontPath="@font" fontPathWeight="400"
+          color="@dimColor"
+          text="DUAL LINE"
+          textAlign="right"/>
+  </Group>
+
+  <!-- ── Idle: clock only ── -->
+  <Group visibility="(! #hasLyric)">
+    <Text x="#marginX" y="(#vh * 0.35)"
+          w="#contentW" size="(72 * #scale)"
+          fontPath="@font" fontPathWeight="700"
+          color="@mainColor"
+          textExp="ifelse((#time_format == 1),formatDate('HH:mm',#time_sys),formatDate('hh:mm',#time_sys))"
+          textAlign="center"/>
+
+    <Text x="#marginX" y="(#vh * 0.35 + 90 * #scale)"
+          w="#contentW" size="(18 * #scale)"
+          fontPath="@font" fontPathWeight="400"
+          color="@subColor"
+          textExp="formatDate('M月d日 EEEE',#time_sys)"
+          textAlign="center"/>
+
+    <!-- Bottom brand -->
+    <Rectangle x="#marginX" y="(#vh - 50 * #scale)"
+               w="#contentW" h="(1 * #scale)"
+               fillColor="@borderColor"/>
+    <Text x="#marginX" y="(#vh - 38 * #scale)"
+          w="#contentW" size="(11 * #scale)"
+          fontPath="@font" fontPathWeight="400"
+          color="@dimColor"
+          text="DUAL LINE"
+          textAlign="right"/>
+  </Group>
+</Widget>

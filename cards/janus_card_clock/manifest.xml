@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Widget name="极简时钟" frameRate="0" scaleByDensity="false" screenWidth="960" version="1"
+         useVariableUpdater="HyperMaterial,DateTime.Minute">
+  <Var name="isDeep" type="number" expression="#isDeep"/>
+  <Var name="mainColor" type="string" expression="ifelse(#isDeep,'#ffffff','#1a1a1a')"/>
+  <Var name="subColor" type="string" expression="ifelse(#isDeep,'#66ffffff','#661a1a1a')"/>
+  <Var name="dimColor" type="string" expression="ifelse(#isDeep,'#33ffffff','#331a1a1a')"/>
+  <Var name="bgColor" type="string" expression="ifelse(#isDeep,'#000000','#ffffff')"/>
+  <Var name="vw" type="number" expression="#view_width"/>
+  <Var name="vh" type="number" expression="#view_height"/>
+  <Var name="scale" type="number" expression="(#vw / 960)"/>
+  <Var name="marginX" type="number" expression="(50 * #scale)"/>
+  <Var name="contentW" type="number" expression="(#vw - (#marginX * 2))"/>
+  <Var name="font" type="string" expression="'/system/fonts/MiSansVF.ttf'"/>
+
+  <!-- Full screen background -->
+  <Rectangle w="#vw" h="#vh" fillColor="@bgColor"/>
+
+  <!-- Hour:Minute - massive -->
+  <Text x="#marginX" y="(#vh * 0.28)"
+        w="#contentW" size="(160 * #scale)"
+        fontPath="@font" fontPathWeight="700"
+        color="@mainColor"
+        textExp="ifelse((#time_format == 1),formatDate('HH',#time_sys),formatDate('hh',#time_sys))"
+        textAlign="center"/>
+
+  <Text x="#marginX" y="(#vh * 0.28 + 170 * #scale)"
+        w="#contentW" size="(160 * #scale)"
+        fontPath="@font" fontPathWeight="700"
+        color="@mainColor"
+        textExp="formatDate('mm',#time_sys)"
+        textAlign="center"/>
+
+  <!-- Seconds - small, subtle -->
+  <Text x="#marginX" y="(#vh * 0.28 + 350 * #scale)"
+        w="#contentW" size="(24 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@subColor"
+        textExp="formatDate('ss',#time_sys)"
+        textAlign="center"/>
+
+  <!-- Date - bottom -->
+  <Text x="#marginX" y="(#vh - 100 * #scale)"
+        w="#contentW" size="(18 * #scale)"
+        fontPath="@font" fontPathWeight="400"
+        color="@dimColor"
+        textExp="formatDate('M/d EEEE',#time_sys)"
+        textAlign="center"/>
+</Widget>
