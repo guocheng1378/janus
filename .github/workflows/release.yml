@@ -94,6 +94,7 @@ jobs:
           files: app/build/outputs/apk/release/Janus-*.apk
 
       - name: Sync Xposed Modules Repo (README + metadata)
+        if: secrets.XPOSED_REPO_TOKEN != null
         env:
           XPOSED_TOKEN: ${{ secrets.XPOSED_REPO_TOKEN }}
         run: |
@@ -115,7 +116,7 @@ jobs:
             -d '{"homepage":"https://github.com/penguinyzsh/janus"}'
 
       - name: Publish to Xposed Modules Repo
-        if: steps.keystore.outputs.valid == 'true'
+        if: steps.keystore.outputs.valid == 'true' && secrets.XPOSED_REPO_TOKEN != null
         uses: softprops/action-gh-release@v2
         with:
           repository: Xposed-Modules-Repo/org.pysh.janus
