@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Widget name="状态面板" frameRate="0" scaleByDensity="false" screenWidth="960" version="1"
+<Widget name="状态面板" frameRate="0" scaleByDensity="false" screenWidth="960" version="2"
          useVariableUpdater="HyperMaterial,DateTime.Minute">
   <!-- Theme colors -->
   <Var name="isDeep" type="number" expression="#isDeep"/>
@@ -9,6 +9,9 @@
   <Var name="cardBg" type="string" expression="ifelse(#isDeep,'#22ffffff','#11000000')"/>
   <Var name="borderColor" type="string" expression="ifelse(#isDeep,'#33ffffff','#22000000')"/>
   <Var name="bgColor" type="string" expression="ifelse(#isDeep,'#000000','#ffffff')"/>
+  <Var name="greenColor" type="string" expression="ifelse(#isDeep,'#44ff88','#00cc66')"/>
+  <Var name="yellowColor" type="string" expression="ifelse(#isDeep,'#ffcc44','#ff9900')"/>
+  <Var name="redColor" type="string" expression="ifelse(#isDeep,'#ff6666','#ee3333')"/>
 
   <!-- Layout -->
   <Var name="vw" type="number" expression="#view_width"/>
@@ -37,6 +40,22 @@
   <!-- Labels -->
   <Var name="themeLabel" type="string" expression="ifelse(#isDeep,'深色','浅色')"/>
   <Var name="bgModeLabel" type="string" expression="ifelse((#bgmode == 0),'静态',ifelse((#bgmode == 1),'动态',ifelse((#bgmode == 2),'视频',ifelse((#bgmode == 3),'AI','未知'))))"/>
+
+  <!-- Battery -->
+  <Var name="batLevel" type="number" expression="#battery_level"/>
+  <Var name="batStatus" type="number" expression="#battery_status"/>
+  <Var name="isCharging" type="number" expression="(#battery_status == 2)"/>
+  <Var name="isFull" type="number" expression="(#battery_status == 5)"/>
+  <Var name="batLabel" type="string" expression="concat(formatNum(#battery_level),'%')"/>
+  <Var name="batStateLabel" type="string" expression="ifelse((#battery_status == 2),'充电中',ifelse((#battery_status == 5),'已充满',ifelse((#battery_status == 3),'放电中','未知')))"/>
+  <Var name="batColor" type="string" expression="ifelse((#battery_status == 2),@greenColor,ifelse((#battery_level &lt;= 15),@redColor,ifelse((#battery_level &lt;= 30),@yellowColor,@mainColor)))"/>
+
+  <!-- Battery bar -->
+  <Var name="barW" type="number" expression="@cardInnerW"/>
+  <Var name="barH" type="number" expression="(4 * #scale)"/>
+  <Var name="barFill" type="number" expression="(@barW * #battery_level / 100)"/>
+  <Var name="barBg" type="string" expression="@borderColor"/>
+  <Var name="barTrackR" type="number" expression="(2 * #scale)"/>
 
   <!-- Background -->
   <Rectangle w="#vw" h="#vh" fillColor="@bgColor"/>
@@ -72,16 +91,69 @@
              w="#contentW" h="(1 * #scale)"
              fillColor="@borderColor"/>
 
-  <!-- Section title -->
+  <!-- ── Battery section ── -->
   <Text x="#marginX" y="(262 * #scale)"
+        w="#contentW" size="#labelSize"
+        fontPath="@font" fontPathWeight="#fontRegular"
+        color="@dimColor"
+        text="电池"
+        textAlign="left"/>
+
+  <!-- Battery card -->
+  <Group x="#marginX" y="(290 * #scale)">
+    <Rectangle w="#contentW" h="(100 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
+
+    <!-- Level + state -->
+    <Text x="(20 * #scale)" y="(24 * #scale)"
+          w="(#contentW / 2)" size="(36 * #scale)"
+          fontPath="@font" fontPathWeight="#fontBold"
+          color="@batColor"
+          textExp="@batLabel"
+          textAlign="left"/>
+    <Text x="(20 * #scale)" y="(70 * #scale)"
+          w="(#contentW / 2)" size="#labelSize"
+          fontPath="@font" fontPathWeight="#fontRegular"
+          color="@subColor"
+          textExp="@batStateLabel"
+          textAlign="left"/>
+
+    <!-- Charging icon (⚡) -->
+    <Group visibility="#isCharging">
+      <Text x="(#contentW - 60 * #scale)" y="(24 * #scale)"
+            w="(50 * #scale)" size="(36 * #scale)"
+            color="@greenColor"
+            text="⚡"
+            textAlign="center"/>
+    </Group>
+
+    <!-- Full icon (✓) -->
+    <Group visibility="#isFull">
+      <Text x="(#contentW - 60 * #scale)" y="(24 * #scale)"
+            w="(50 * #scale)" size="(36 * #scale)"
+            color="@greenColor"
+            text="✓"
+            textAlign="center"/>
+    </Group>
+
+    <!-- Progress bar -->
+    <Rectangle x="(20 * #scale)" y="(90 * #scale)"
+               w="@barW" h="@barH"
+               fillColor="@barBg" radius="@barTrackR"/>
+    <Rectangle x="(20 * #scale)" y="(90 * #scale)"
+               w="@barFill" h="@barH"
+               fillColor="@batColor" radius="@barTrackR"/>
+  </Group>
+
+  <!-- ── System status section ── -->
+  <Text x="#marginX" y="(420 * #scale)"
         w="#contentW" size="#labelSize"
         fontPath="@font" fontPathWeight="#fontRegular"
         color="@dimColor"
         text="系统状态"
         textAlign="left"/>
 
-  <!-- ── Row 1 ── -->
-  <Group x="#marginX" y="(295 * #scale)">
+  <!-- Row 1 -->
+  <Group x="#marginX" y="(448 * #scale)">
     <!-- Screen -->
     <Group>
       <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
@@ -106,8 +178,8 @@
     </Group>
   </Group>
 
-  <!-- ── Row 2 ── -->
-  <Group x="#marginX" y="(405 * #scale)">
+  <!-- Row 2 -->
+  <Group x="#marginX" y="(558 * #scale)">
     <!-- BG mode -->
     <Group>
       <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
@@ -117,30 +189,6 @@
       <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
             fontPath="@font" fontPathWeight="#fontBold"
             color="@mainColor" textExp="@bgModeLabel" textAlign="left"/>
-    </Group>
-    <!-- Time format -->
-    <Group x="((#contentW + 16 * #scale) / 2)">
-      <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
-      <Text x="(20 * #scale)" y="(22 * #scale)" w="@cardInnerW" size="#labelSize"
-            fontPath="@font" fontPathWeight="#fontRegular"
-            color="@dimColor" text="时间格式" textAlign="left"/>
-      <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
-            fontPath="@font" fontPathWeight="#fontBold"
-            color="@mainColor" textExp="@timeFormatLabel" textAlign="left"/>
-    </Group>
-  </Group>
-
-  <!-- ── Row 3 ── -->
-  <Group x="#marginX" y="(515 * #scale)">
-    <!-- Scale -->
-    <Group>
-      <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
-      <Text x="(20 * #scale)" y="(22 * #scale)" w="@cardInnerW" size="#labelSize"
-            fontPath="@font" fontPathWeight="#fontRegular"
-            color="@dimColor" text="缩放系数" textAlign="left"/>
-      <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
-            fontPath="@font" fontPathWeight="#fontBold"
-            color="@mainColor" textExp="@scale" textAlign="left"/>
     </Group>
     <!-- Lyric status -->
     <Group x="((#contentW + 16 * #scale) / 2)">
