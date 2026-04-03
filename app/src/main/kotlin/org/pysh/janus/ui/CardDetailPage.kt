@@ -84,7 +84,10 @@ fun CardDetailPage(
             refreshInterval = refreshInterval.toInt(),
             priority = priority.toInt(),
         )
-        withContext(Dispatchers.IO) { cardManager?.updateCard(updated) }
+        withContext(Dispatchers.IO) {
+                    cardManager?.updateCard(updated)
+                    cardManager?.syncConfig()
+                }
     }
 
     var showRefreshDialog by remember { mutableStateOf(false) }
