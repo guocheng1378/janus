@@ -5,10 +5,13 @@
   <Var name="isDeep" type="number" expression="#isDeep"/>
   <Var name="isDisplayDefaultBg" type="number" expression="#isDisplayDefaultBg"/>
   <Var name="lyricText" type="string" expression="@signatureText"/>
+  <Var name="hasLyric" type="number" expression="(! strIsEmpty(@signatureText))"/>
   <Var name="textColor" type="string" expression="@textColor"/>
   <Var name="mainColor" type="string" expression="ifelse((! strIsEmpty(@textColor)),@textColor,ifelse(#isDeep,'#ffffff','#1a1a1a'))"/>
   <Var name="subColor" type="string" expression="ifelse(#isDeep,'#99ffffff','#991a1a1a')"/>
+  <Var name="dimColor" type="string" expression="ifelse(#isDeep,'#55ffffff','#551a1a1a')"/>
   <Var name="progressColor" type="string" expression="ifelse(#isDeep,'#33ffffff','#33000000')"/>
+  <Var name="bgColor" type="string" expression="ifelse(#isDeep,'#000000','#ffffff')"/>
   <Var name="vw" type="number" expression="#view_width"/>
   <Var name="vh" type="number" expression="#view_height"/>
   <Var name="scale" type="number" expression="(#vw / 960)"/>
@@ -17,42 +20,84 @@
   <Var name="lyricSize" type="number" expression="(48 * #scale)"/>
   <Var name="infoSize" type="number" expression="(20 * #scale)"/>
   <Var name="timeSize" type="number" expression="(16 * #scale)"/>
+  <Var name="clockSize" type="number" expression="(80 * #scale)"/>
+  <Var name="dateSize" type="number" expression="(22 * #scale)"/>
   <Var name="font" type="string" expression="'/system/fonts/MiSansVF.ttf'"/>
   <Var name="fontBold" type="number" expression="500"/>
   <Var name="fontRegular" type="number" expression="400"/>
   <Var name="timeFmt" type="string" expression="ifelse((#time_format == 1),'HH:mm','hh:mm')"/>
-  <Rectangle w="#vw" h="#vh" visibility="(#bgmode == 3)" fillColor="ifelse(#isDeep,'#000000','#ffffff')"/>
-  <Text x="#marginX" y="(30 * #scale)"
-        w="#contentW" size="#timeSize"
-        fontPath="@font" fontPathWeight="#fontRegular"
-        color="@subColor"
-        textExp="formatDate(@timeFmt,#time_sys)"
-        textAlign="left"/>
-  <Group x="#marginX" w="#contentW">
-    <Text x="0"
-          y="(#vh * 0.32)"
-          w="#contentW"
-          size="#lyricSize"
-          fontPath="@font"
-          fontPathWeight="#fontBold"
-          color="@mainColor"
-          textExp="@lyricText"
-          textAlign="center"
-          lineClamp="4"
-          multiLine="true"
-          ellipsis="true"
-          spacingMult="1.4"
-          name="lyric_main"/>
+  <Var name="timeFmtFull" type="string" expression="ifelse((#time_format == 1),'HH:mm:ss','hh:mm:ss')"/>
+  <Var name="dateFmt" type="string" expression="'yyyy年M月d日 EEEE'"/>
+
+  <!-- Background: always visible -->
+  <Rectangle w="#vw" h="#vh" fillColor="@bgColor"/>
+
+  <!-- === LYRIC STATE: music playing === -->
+  <Group visibility="#hasLyric">
+    <Text x="#marginX" y="(30 * #scale)"
+          w="#contentW" size="#timeSize"
+          fontPath="@font" fontPathWeight="#fontRegular"
+          color="@subColor"
+          textExp="formatDate(@timeFmt,#time_sys)"
+          textAlign="left"/>
+    <Group x="#marginX" w="#contentW">
+      <Text x="0"
+            y="(#vh * 0.32)"
+            w="#contentW"
+            size="#lyricSize"
+            fontPath="@font"
+            fontPathWeight="#fontBold"
+            color="@mainColor"
+            textExp="@lyricText"
+            textAlign="center"
+            lineClamp="4"
+            multiLine="true"
+            ellipsis="true"
+            spacingMult="1.4"
+            name="lyric_main"/>
+    </Group>
+    <Rectangle x="#marginX" y="(#vh - 60 * #scale)"
+               w="#contentW" h="1"
+               fillColor="@progressColor"/>
+    <Text x="#marginX" y="(#vh - 45 * #scale)"
+          w="#contentW" size="#timeSize"
+          fontPath="@font" fontPathWeight="#fontRegular"
+          color="@subColor"
+          text="河词"
+          textAlign="right"/>
   </Group>
-  <Rectangle x="#marginX" y="(#vh - 60 * #scale)"
-             w="#contentW" h="1"
-             fillColor="@progressColor"/>
-  <Text x="#marginX" y="(#vh - 45 * #scale)"
-        w="#contentW" size="#timeSize"
-        fontPath="@font" fontPathWeight="#fontRegular"
-        color="@subColor"
-        text="河词"
-        textAlign="right"/>
+
+  <!-- === IDLE STATE: no music, show clock + date === -->
+  <Group visibility="(! #hasLyric)">
+    <Text x="#marginX" y="(#vh * 0.30)"
+          w="#contentW" size="#clockSize"
+          fontPath="@font" fontPathWeight="#fontBold"
+          color="@mainColor"
+          textExp="formatDate(@timeFmt,#time_sys)"
+          textAlign="center"/>
+    <Text x="#marginX" y="(#vh * 0.30 + #clockSize + 16 * #scale)"
+          w="#contentW" size="#dateSize"
+          fontPath="@font" fontPathWeight="#fontRegular"
+          color="@subColor"
+          textExp="formatDate(@dateFmt,#time_sys)"
+          textAlign="center"/>
+    <Text x="#marginX" y="(#vh * 0.30 + #clockSize + 50 * #scale)"
+          w="#contentW" size="#infoSize"
+          fontPath="@font" fontPathWeight="#fontRegular"
+          color="@dimColor"
+          text="播放音乐以显示歌词"
+          textAlign="center"/>
+    <Rectangle x="#marginX" y="(#vh - 60 * #scale)"
+               w="#contentW" h="1"
+               fillColor="@progressColor"/>
+    <Text x="#marginX" y="(#vh - 45 * #scale)"
+          w="#contentW" size="#timeSize"
+          fontPath="@font" fontPathWeight="#fontRegular"
+          color="@subColor"
+          text="河词"
+          textAlign="right"/>
+  </Group>
+
   <FolmeState name="fade_in" alpha="200" scaleX="0.98" scaleY="0.98"/>
   <FolmeState name="fade_out" alpha="0"/>
   <FolmeConfig name="fade_cfg" ease="-2, 1, 0.65"/>
