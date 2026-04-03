@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Widget name="状态面板" frameRate="0" scaleByDensity="false" screenWidth="960" version="1"
+         useVariableUpdater="HyperMaterial,DateTime.Minute">
+  <!-- Theme colors -->
+  <Var name="isDeep" type="number" expression="#isDeep"/>
+  <Var name="mainColor" type="string" expression="ifelse(#isDeep,'#ffffff','#1a1a1a')"/>
+  <Var name="subColor" type="string" expression="ifelse(#isDeep,'#99ffffff','#991a1a1a')"/>
+  <Var name="dimColor" type="string" expression="ifelse(#isDeep,'#55ffffff','#551a1a1a')"/>
+  <Var name="cardBg" type="string" expression="ifelse(#isDeep,'#22ffffff','#11000000')"/>
+  <Var name="borderColor" type="string" expression="ifelse(#isDeep,'#33ffffff','#22000000')"/>
+  <Var name="bgColor" type="string" expression="ifelse(#isDeep,'#000000','#ffffff')"/>
+
+  <!-- Layout -->
+  <Var name="vw" type="number" expression="#view_width"/>
+  <Var name="vh" type="number" expression="#view_height"/>
+  <Var name="scale" type="number" expression="(#vw / 960)"/>
+  <Var name="marginX" type="number" expression="(50 * #scale)"/>
+  <Var name="contentW" type="number" expression="(#vw - (#marginX * 2))"/>
+  <Var name="cardRadius" type="number" expression="(16 * #scale)"/>
+  <Var name="cardW" type="number" expression="((#contentW - 16 * #scale) / 2)"/>
+  <Var name="cardInnerW" type="number" expression="((#contentW - 16 * #scale) / 2 - 40 * #scale)"/>
+
+  <!-- Typography -->
+  <Var name="clockSize" type="number" expression="(96 * #scale)"/>
+  <Var name="dateSize" type="number" expression="(22 * #scale)"/>
+  <Var name="labelSize" type="number" expression="(14 * #scale)"/>
+  <Var name="valueSize" type="number" expression="(20 * #scale)"/>
+  <Var name="tagSize" type="number" expression="(12 * #scale)"/>
+  <Var name="font" type="string" expression="'/system/fonts/MiSansVF.ttf'"/>
+  <Var name="fontBold" type="number" expression="500"/>
+  <Var name="fontRegular" type="number" expression="400"/>
+
+  <!-- Time format -->
+  <Var name="timeFmt" type="string" expression="ifelse((#time_format == 1),'HH:mm','hh:mm')"/>
+  <Var name="timeFormatLabel" type="string" expression="ifelse((#time_format == 1),'24H','12H')"/>
+
+  <!-- Labels -->
+  <Var name="themeLabel" type="string" expression="ifelse(#isDeep,'深色','浅色')"/>
+  <Var name="bgModeLabel" type="string" expression="ifelse((#bgmode == 0),'静态',ifelse((#bgmode == 1),'动态',ifelse((#bgmode == 2),'视频',ifelse((#bgmode == 3),'AI','未知'))))"/>
+
+  <!-- Background -->
+  <Rectangle w="#vw" h="#vh" fillColor="@bgColor"/>
+
+  <!-- ── Clock ── -->
+  <Text x="#marginX" y="(40 * #scale)"
+        w="#contentW" size="#clockSize"
+        fontPath="@font" fontPathWeight="#fontBold"
+        color="@mainColor"
+        textExp="formatDate(@timeFmt,#time_sys)"
+        textAlign="center"/>
+
+  <!-- AM/PM (12H only) -->
+  <Group visibility="(#time_format != 1)">
+    <Text x="#marginX" y="(150 * #scale)"
+          w="#contentW" size="#dateSize"
+          fontPath="@font" fontPathWeight="#fontRegular"
+          color="@subColor"
+          textExp="formatDate('a',#time_sys)"
+          textAlign="center"/>
+  </Group>
+
+  <!-- Date -->
+  <Text x="#marginX" y="(180 * #scale)"
+        w="#contentW" size="#dateSize"
+        fontPath="@font" fontPathWeight="#fontRegular"
+        color="@subColor"
+        textExp="formatDate('yyyy年M月d日 EEEE',#time_sys)"
+        textAlign="center"/>
+
+  <!-- Divider -->
+  <Rectangle x="#marginX" y="(230 * #scale)"
+             w="#contentW" h="(1 * #scale)"
+             fillColor="@borderColor"/>
+
+  <!-- Section title -->
+  <Text x="#marginX" y="(262 * #scale)"
+        w="#contentW" size="#labelSize"
+        fontPath="@font" fontPathWeight="#fontRegular"
+        color="@dimColor"
+        text="系统状态"
+        textAlign="left"/>
+
+  <!-- ── Row 1 ── -->
+  <Group x="#marginX" y="(295 * #scale)">
+    <!-- Screen -->
+    <Group>
+      <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
+      <Text x="(20 * #scale)" y="(22 * #scale)" w="@cardInnerW" size="#labelSize"
+            fontPath="@font" fontPathWeight="#fontRegular"
+            color="@dimColor" text="屏幕分辨率" textAlign="left"/>
+      <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
+            fontPath="@font" fontPathWeight="#fontBold"
+            color="@mainColor"
+            textExp="concat(formatNum(#view_width),' × ',formatNum(#view_height))"
+            textAlign="left"/>
+    </Group>
+    <!-- Theme -->
+    <Group x="((#contentW + 16 * #scale) / 2)">
+      <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
+      <Text x="(20 * #scale)" y="(22 * #scale)" w="@cardInnerW" size="#labelSize"
+            fontPath="@font" fontPathWeight="#fontRegular"
+            color="@dimColor" text="显示模式" textAlign="left"/>
+      <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
+            fontPath="@font" fontPathWeight="#fontBold"
+            color="@mainColor" textExp="@themeLabel" textAlign="left"/>
+    </Group>
+  </Group>
+
+  <!-- ── Row 2 ── -->
+  <Group x="#marginX" y="(405 * #scale)">
+    <!-- BG mode -->
+    <Group>
+      <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
+      <Text x="(20 * #scale)" y="(22 * #scale)" w="@cardInnerW" size="#labelSize"
+            fontPath="@font" fontPathWeight="#fontRegular"
+            color="@dimColor" text="壁纸模式" textAlign="left"/>
+      <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
+            fontPath="@font" fontPathWeight="#fontBold"
+            color="@mainColor" textExp="@bgModeLabel" textAlign="left"/>
+    </Group>
+    <!-- Time format -->
+    <Group x="((#contentW + 16 * #scale) / 2)">
+      <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
+      <Text x="(20 * #scale)" y="(22 * #scale)" w="@cardInnerW" size="#labelSize"
+            fontPath="@font" fontPathWeight="#fontRegular"
+            color="@dimColor" text="时间格式" textAlign="left"/>
+      <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
+            fontPath="@font" fontPathWeight="#fontBold"
+            color="@mainColor" textExp="@timeFormatLabel" textAlign="left"/>
+    </Group>
+  </Group>
+
+  <!-- ── Row 3 ── -->
+  <Group x="#marginX" y="(515 * #scale)">
+    <!-- Scale -->
+    <Group>
+      <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
+      <Text x="(20 * #scale)" y="(22 * #scale)" w="@cardInnerW" size="#labelSize"
+            fontPath="@font" fontPathWeight="#fontRegular"
+            color="@dimColor" text="缩放系数" textAlign="left"/>
+      <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
+            fontPath="@font" fontPathWeight="#fontBold"
+            color="@mainColor" textExp="@scale" textAlign="left"/>
+    </Group>
+    <!-- Lyric status -->
+    <Group x="((#contentW + 16 * #scale) / 2)">
+      <Rectangle w="@cardW" h="(90 * #scale)" fillColor="@cardBg" radius="@cardRadius"/>
+      <Text x="(20 * #scale)" y="(22 * #scale)" w="@cardInnerW" size="#labelSize"
+            fontPath="@font" fontPathWeight="#fontRegular"
+            color="@dimColor" text="歌词状态" textAlign="left"/>
+      <Text x="(20 * #scale)" y="(48 * #scale)" w="@cardInnerW" size="#valueSize"
+            fontPath="@font" fontPathWeight="#fontBold"
+            color="@mainColor"
+            textExp="ifelse((! strIsEmpty(@signatureText)),'播放中','未播放')"
+            textAlign="left"/>
+    </Group>
+  </Group>
+
+  <!-- Bottom divider -->
+  <Rectangle x="#marginX" y="(#vh - 60 * #scale)"
+             w="#contentW" h="(1 * #scale)"
+             fillColor="@borderColor"/>
+
+  <!-- Brand -->
+  <Text x="#marginX" y="(#vh - 45 * #scale)"
+        w="#contentW" size="#tagSize"
+        fontPath="@font" fontPathWeight="#fontRegular"
+        color="@dimColor"
+        text="JANUS STATUS"
+        textAlign="right"/>
+</Widget>
