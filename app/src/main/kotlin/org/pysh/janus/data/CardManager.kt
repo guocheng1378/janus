@@ -8,6 +8,7 @@ import org.json.JSONObject
 import org.pysh.janus.util.JanusPaths
 import org.pysh.janus.util.RootUtils
 import java.io.File
+import java.util.concurrent.Executors
 import java.util.zip.ZipFile
 
 class CardManager(private val context: Context) {
@@ -24,6 +25,9 @@ class CardManager(private val context: Context) {
         private val CARDS_DEPLOY_DIR = JanusPaths.CARDS_DIR
         private val DEPLOY_BASE = JanusPaths.TEMPLATES_DIR
         private val MUSIC_LYRIC_PATCH_FLAG = "${JanusPaths.CONFIG_DIR}/music_lyric_patch"
+
+        /** 后台线程池，用于执行 root 命令等阻塞操作，避免主线程卡顿 */
+        private val ioExecutor = Executors.newSingleThreadExecutor()
     }
 
     private val prefs: SharedPreferences = try {
@@ -154,10 +158,12 @@ class CardManager(private val context: Context) {
 
         val tmp = File(context.cacheDir, "cards_cfg_tmp.json")
         tmp.writeText(config.toString())
-        RootUtils.exec(
-            "cp ${tmp.absolutePath} $CARDS_CONFIG_FLAG_PATH && chmod 644 $CARDS_CONFIG_FLAG_PATH && chcon u:object_r:theme_data_file:s0 $CARDS_CONFIG_FLAG_PATH"
-        )
-        tmp.delete()
+        ioExecutor.execute {
+            RootUtils.exec(
+                "cp ${tmp.absolutePath} $CARDS_CONFIG_FLAG_PATH && chmod 644 $CARDS_CONFIG_FLAG_PATH && chcon u:object_r:theme_data_file:s0 $CARDS_CONFIG_FLAG_PATH"
+            )
+            tmp.delete()
+        }
     }
 
     /** Deploy a card's ZIP template to the system smart_assistant path.
@@ -174,16 +180,18 @@ class CardManager(private val context: Context) {
         zipFile.copyTo(tmp, overwrite = true)
         android.util.Log.d("Janus-CardMgr", "deployCard: copied ${zipFile.absolutePath} (${zipFile.length()}) to ${tmp.absolutePath} (${tmp.length()})")
         val dest = "$DEPLOY_BASE/${card.businessName}"
-        val cmd = "rm -rf $dest && cp ${tmp.absolutePath} $dest && chmod 644 $dest && chcon u:object_r:theme_data_file:s0 $dest"
-        val result = RootUtils.exec(cmd)
-        android.util.Log.d("Janus-CardMgr", "deployCard: exec result=$result dest=$dest")
-        tmp.delete()
+        ioExecutor.execute {
+            val cmd = "rm -rf $dest && cp ${tmp.absolutePath} $dest && chmod 644 $dest && chcon u:object_r:theme_data_file:s0 $dest"
+            val result = RootUtils.exec(cmd)
+            android.util.Log.d("Janus-CardMgr", "deployCard: exec result=$result dest=$dest")
+            tmp.delete()
+        }
     }
 
     /** Remove a card's deployed template from the system path. */
     fun undeployCard(slot: Int) {
         val business = if (slot == 0) "weather" else "janus_card_$slot"
-        RootUtils.exec("rm -f $DEPLOY_BASE/$business")
+        ioExecutor.execute { RootUtils.exec("rm -f $DEPLOY_BASE/$business") }
     }
 
     /** Deploy card ZIPs to theme_magic config/cards/ so Hook can read them.
@@ -196,10 +204,12 @@ class CardManager(private val context: Context) {
             val tmp = File(context.cacheDir, "card_hook_${card.slot}.zip")
             src.copyTo(tmp, overwrite = true)
             val dest = "$CARDS_DEPLOY_DIR/${card.slot}.zip"
-            RootUtils.exec(
-                "cp ${tmp.absolutePath} $dest && chmod 644 $dest && chcon u:object_r:theme_data_file:s0 $dest"
-            )
-            tmp.delete()
+            ioExecutor.execute {
+                RootUtils.exec(
+                    "cp ${tmp.absolutePath} $dest && chmod 644 $dest && chcon u:object_r:theme_data_file:s0 $dest"
+                )
+                tmp.delete()
+            }
         }
     }
 
@@ -228,10 +238,12 @@ class CardManager(private val context: Context) {
             val deployDest = "${JanusPaths.CARDS_DIR}/${card.customFileName}"
             val tmp = File(context.cacheDir, "${card.business}_deploy_tmp.zip")
             localFile.copyTo(tmp, overwrite = true)
-            RootUtils.exec(
-                "cp ${tmp.absolutePath} $deployDest && chmod 644 $deployDest && chcon u:object_r:theme_data_file:s0 $deployDest"
-            )
-            tmp.delete()
+            ioExecutor.execute {
+                RootUtils.exec(
+                    "cp ${tmp.absolutePath} $deployDest && chmod 644 $deployDest && chcon u:object_r:theme_data_file:s0 $deployDest"
+                )
+                tmp.delete()
+            }
 
             val displayName = name ?: getFileNameFromUri(uri)?.removeSuffix(".zip") ?: "Custom"
             prefs.edit().putString(card.overridePrefsKey, displayName).commit()
@@ -245,8 +257,10 @@ class CardManager(private val context: Context) {
 
     fun removeSystemCardOverride(card: SystemCard) {
         File(cardsDir, card.customFileName).delete()
-        RootUtils.exec("rm -f '${JanusPaths.CARDS_DIR}/${card.customFileName}'")
-        RootUtils.exec("rm -f '${JanusPaths.TEMPLATES_DIR}/${card.customTemplateName}'")
+        ioExecutor.execute {
+            RootUtils.exec("rm -f '${JanusPaths.CARDS_DIR}/${card.customFileName}'")
+            RootUtils.exec("rm -f '${JanusPaths.TEMPLATES_DIR}/${card.customTemplateName}'")
+        }
         prefs.edit().remove(card.overridePrefsKey).commit()
         makePrefsWorldReadable()
     }
@@ -263,10 +277,12 @@ class CardManager(private val context: Context) {
             val tmp = File(context.cacheDir, "${card.business}_hook_tmp.zip")
             src.copyTo(tmp, overwrite = true)
             val dest = "${JanusPaths.CARDS_DIR}/${card.customFileName}"
-            RootUtils.exec(
-                "cp ${tmp.absolutePath} $dest && chmod 644 $dest && chcon u:object_r:theme_data_file:s0 $dest"
-            )
-            tmp.delete()
+            ioExecutor.execute {
+                RootUtils.exec(
+                    "cp ${tmp.absolutePath} $dest && chmod 644 $dest && chcon u:object_r:theme_data_file:s0 $dest"
+                )
+                tmp.delete()
+            }
         }
     }
 
@@ -282,10 +298,12 @@ class CardManager(private val context: Context) {
         prefs.edit().putBoolean(KEY_MUSIC_LYRIC_PATCH, enabled).commit()
         makePrefsWorldReadable()
         JanusPaths.ensureAllDirs()
-        if (enabled) {
-            RootUtils.exec("touch '$MUSIC_LYRIC_PATCH_FLAG' && chmod 644 '$MUSIC_LYRIC_PATCH_FLAG' && chcon u:object_r:theme_data_file:s0 '$MUSIC_LYRIC_PATCH_FLAG'")
-        } else {
-            RootUtils.exec("rm -f '$MUSIC_LYRIC_PATCH_FLAG'")
+        ioExecutor.execute {
+            if (enabled) {
+                RootUtils.exec("touch '$MUSIC_LYRIC_PATCH_FLAG' && chmod 644 '$MUSIC_LYRIC_PATCH_FLAG' && chcon u:object_r:theme_data_file:s0 '$MUSIC_LYRIC_PATCH_FLAG'")
+            } else {
+                RootUtils.exec("rm -f '$MUSIC_LYRIC_PATCH_FLAG'")
+            }
         }
     }
 

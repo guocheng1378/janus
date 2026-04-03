@@ -6,6 +6,7 @@ import android.util.Log
 import org.pysh.janus.JanusApplication
 import org.pysh.janus.util.JanusPaths
 import java.io.File
+import java.util.concurrent.Executors
 
 class WhitelistManager(private val context: Context) {
 
@@ -30,6 +31,9 @@ class WhitelistManager(private val context: Context) {
         val WALLPAPER_KEEP_ALIVE_FLAG_PATH = JanusPaths.WALLPAPER_KEEP_ALIVE
         val WALLPAPER_LOCK_FLAG_PATH = JanusPaths.WALLPAPER_LOCK
         val HIDE_TIME_TIP_FLAG_PATH = JanusPaths.HIDE_TIME_TIP
+
+        /** 后台线程池，用于执行 root 命令等阻塞操作，避免主线程卡顿 */
+        private val ioExecutor = Executors.newSingleThreadExecutor()
     }
 
     private val prefs: SharedPreferences = try {
@@ -64,7 +68,7 @@ class WhitelistManager(private val context: Context) {
     fun setTrackingDisabled(disabled: Boolean) {
         prefs.edit().putBoolean(KEY_DISABLE_TRACKING, disabled).commit()
         makePrefsWorldReadable()
-        syncBooleanFlag(TRACKING_FLAG_PATH, disabled)
+        ioExecutor.execute { syncBooleanFlag(TRACKING_FLAG_PATH, disabled) }
         syncRemoteBool("tracking_disabled", disabled)
     }
 
@@ -111,7 +115,7 @@ class WhitelistManager(private val context: Context) {
     fun setWallpaperKeepAlive(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_WALLPAPER_KEEP_ALIVE, enabled).commit()
         makePrefsWorldReadable()
-        syncBooleanFlag(WALLPAPER_KEEP_ALIVE_FLAG_PATH, enabled)
+        ioExecutor.execute { syncBooleanFlag(WALLPAPER_KEEP_ALIVE_FLAG_PATH, enabled) }
         syncRemoteBool("wallpaper_keep_alive", enabled)
     }
 
@@ -122,7 +126,7 @@ class WhitelistManager(private val context: Context) {
     fun setWallpaperLocked(locked: Boolean) {
         prefs.edit().putBoolean(KEY_WALLPAPER_LOCK, locked).commit()
         makePrefsWorldReadable()
-        syncBooleanFlag(WALLPAPER_LOCK_FLAG_PATH, locked)
+        ioExecutor.execute { syncBooleanFlag(WALLPAPER_LOCK_FLAG_PATH, locked) }
         syncRemoteBool("wallpaper_lock", locked)
     }
 
@@ -133,7 +137,7 @@ class WhitelistManager(private val context: Context) {
     fun setTimeTipHidden(hidden: Boolean) {
         prefs.edit().putBoolean(KEY_HIDE_TIME_TIP, hidden).commit()
         makePrefsWorldReadable()
-        syncBooleanFlag(HIDE_TIME_TIP_FLAG_PATH, hidden)
+        ioExecutor.execute { syncBooleanFlag(HIDE_TIME_TIP_FLAG_PATH, hidden) }
         syncRemoteBool("hide_time_tip", hidden)
     }
 
@@ -158,7 +162,7 @@ class WhitelistManager(private val context: Context) {
             .putString(KEY_WHITELIST, packages.joinToString(","))
             .commit()
         makePrefsWorldReadable()
-        syncWhitelistFlag(packages)
+        ioExecutor.execute { syncWhitelistFlag(packages) }
         syncRemoteWhitelist(packages)
     }
 
@@ -179,12 +183,14 @@ class WhitelistManager(private val context: Context) {
     /** Sync all SP settings to file flags and RemotePreferences so the hook side can read them. */
     fun syncAllFlags() {
         JanusPaths.ensureAllDirs()
-        syncWhitelistFlag(getWhitelist())
-        syncBooleanFlag(TRACKING_FLAG_PATH, isTrackingDisabled())
-        syncBooleanFlag(WALLPAPER_KEEP_ALIVE_FLAG_PATH, isWallpaperKeepAlive())
-        syncBooleanFlag(WALLPAPER_LOCK_FLAG_PATH, isWallpaperLocked())
-        syncBooleanFlag(HIDE_TIME_TIP_FLAG_PATH, isTimeTipHidden())
-        // Card config is synced by CardManager.syncConfig()
+        ioExecutor.execute {
+            syncWhitelistFlag(getWhitelist())
+            syncBooleanFlag(TRACKING_FLAG_PATH, isTrackingDisabled())
+            syncBooleanFlag(WALLPAPER_KEEP_ALIVE_FLAG_PATH, isWallpaperKeepAlive())
+            syncBooleanFlag(WALLPAPER_LOCK_FLAG_PATH, isWallpaperLocked())
+            syncBooleanFlag(HIDE_TIME_TIP_FLAG_PATH, isTimeTipHidden())
+            // Card config is synced by CardManager.syncConfig()
+        }
         syncAllToRemotePrefs()
     }
 

@@ -97,8 +97,7 @@ object JanusMigration {
         // Card templates in smart_assistant/ are ephemeral (Hook redeploys on each
         // startup). Delete old ones — the new Hook will deploy to janus/templates/
         // after the restart at the end of migration.
-        RootUtils.exec("rm -f '$OLD_SMART_ASSISTANT/weather'")
-        RootUtils.exec("rm -f '$OLD_SMART_ASSISTANT/janus_card_0'")
+        // 注意：保留 smart_assistant/weather（可能是当前正在使用的）
         for (i in 1..19) RootUtils.exec("rm -f '$OLD_SMART_ASSISTANT/janus_card_$i'")
 
         // Custom wallpaper

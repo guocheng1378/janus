@@ -39,7 +39,14 @@ object ActionExecutor {
                 val method = if (paramClasses != null) {
                     clazz.getDeclaredMethod(target.methodName, *paramClasses)
                 } else {
-                    clazz.declaredMethods.first { it.name == target.methodName }
+                    val methods = clazz.declaredMethods.filter { it.name == target.methodName }
+                    if (methods.isEmpty()) {
+                        throw NoSuchMethodException("${target.methodName} not found in ${target.className}")
+                    }
+                    if (methods.size > 1) {
+                        Log.w(TAG, "Multiple overloads of ${target.methodName} in ${target.className}, using first match. Consider adding paramTypes.")
+                    }
+                    methods.first()
                 }
                 val hooker = createHooker(target.id, target.action, rule, config)
                 module.hook(method).intercept(hooker)

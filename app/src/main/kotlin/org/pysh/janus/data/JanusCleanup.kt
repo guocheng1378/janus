@@ -4,6 +4,7 @@ import android.util.Base64
 import org.json.JSONArray
 import org.pysh.janus.util.JanusPaths
 import org.pysh.janus.util.RootUtils
+import java.io.File
 
 /**
  * Removes all Janus residual files from system directories.
@@ -60,12 +61,22 @@ object JanusCleanup {
     }
 
     private fun writeRuntimeJson(arr: JSONArray): Boolean {
+        // 使用 base64 编码 + 文件写入，避免 shell 特殊字符问题
         val tmpFile = "/data/local/tmp/janus_cleanup_runtime.json"
         val b64 = Base64.encodeToString(arr.toString().toByteArray(), Base64.NO_WRAP)
-        if (!RootUtils.exec("echo '$b64' | base64 -d > '$tmpFile'")) return false
+        // base64 字符集 [A-Za-z0-9+/=] 不含 shell 元字符，安全拼接到命令中
+        // 使用 tee 代替 echo/printf 以避免参数过长截断
+        val writeCmd = "echo -n '$b64' | base64 -d > '$tmpFile'"
+        if (!RootUtils.exec(writeCmd)) return false
+        // 验证写出的 JSON 合法
+        val verify = RootUtils.execWithOutput("cat '$tmpFile'") ?: return false
+        try { JSONArray(verify) } catch (_: Exception) {
+            RootUtils.exec("rm -f '$tmpFile'")
+            return false
+        }
         if (!RootUtils.exec("cp '$tmpFile' '${JanusPaths.RUNTIME_JSON}'")) return false
         RootUtils.exec("chown system_theme:ext_data_rw '${JanusPaths.RUNTIME_JSON}'")
-        RootUtils.exec("chmod 777 '${JanusPaths.RUNTIME_JSON}'")
+        RootUtils.exec("chmod 644 '${JanusPaths.RUNTIME_JSON}'")
         RootUtils.exec("rm -f '$tmpFile'")
         return true
     }

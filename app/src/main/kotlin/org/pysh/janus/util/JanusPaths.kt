@@ -71,7 +71,7 @@ object JanusPaths {
         // NOTE: smart_assistant/music is NOT deleted — subscreencenter regenerates it on every
         // restart, and without the Hook it's the stock version (harmless)
         ok = RootUtils.exec("rm -f '$LEGACY_SMART_ASSISTANT/weather'") && ok
-        for (i in 0..19) {  // 0 = obsolete janus_card_0 naming
+        for (i in 1..19) {  // 从 1 开始，跳过 slot 0（可能是当前正在使用的 weather 卡片）
             RootUtils.exec("rm -f '$LEGACY_SMART_ASSISTANT/janus_card_$i'")
         }
         return ok

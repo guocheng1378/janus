@@ -10,10 +10,16 @@ object RootUtils {
     fun exec(command: String): Boolean {
         return try {
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-            val stderr = process.errorStream.bufferedReader().use { it.readText() }
+            // 必须同时消费 stdout 和 stderr，防止管道缓冲区满导致死锁
+            val stdout = Thread { process.inputStream.bufferedReader().use { it.readText() } }.apply { isDaemon = true }
+            val stderr = Thread { process.errorStream.bufferedReader().use { it.readText() } }.apply { isDaemon = true }
+            stdout.start()
+            stderr.start()
             val exitCode = process.waitFor()
+            stdout.join(5_000)
+            stderr.join(5_000)
             if (exitCode != 0) {
-                android.util.Log.e("Janus-Root", "exec failed ($exitCode): $command\n$stderr")
+                android.util.Log.e("Janus-Root", "exec failed ($exitCode): $command")
             }
             exitCode == 0
         } catch (e: Exception) {
@@ -34,10 +40,18 @@ object RootUtils {
     fun execWithOutput(command: String): String? {
         return try {
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-            // 先读完 stdout 再 waitFor，避免缓冲区满导致死锁
-            val output = process.inputStream.bufferedReader().use { it.readText().trim() }
-            process.errorStream.bufferedReader().use { it.readText() }
-            if (process.waitFor() == 0) output else null
+            // 同时消费 stdout 和 stderr，防止缓冲区满导致死锁
+            val outputRef = arrayOf("")
+            val stdout = Thread {
+                process.inputStream.bufferedReader().use { outputRef[0] = it.readText().trim() }
+            }.apply { isDaemon = true }
+            val stderr = Thread { process.errorStream.bufferedReader().use { it.readText() } }.apply { isDaemon = true }
+            stdout.start()
+            stderr.start()
+            val exitCode = process.waitFor()
+            stdout.join(5_000)
+            stderr.join(5_000)
+            if (exitCode == 0) outputRef[0] else null
         } catch (_: Exception) {
             null
         }

@@ -35,6 +35,9 @@ object LyricInjector {
 
     private const val TAG = "Janus-Lyric"
 
+    /** 用于保护 lyrics/translations/lastLyricLine 的读写一致性 */
+    private val lock = Any()
+
     @Volatile
     var lyrics: List<TimedLine> = emptyList()
         private set
@@ -55,7 +58,7 @@ object LyricInjector {
     private var mediaSessionRef: MediaSession? = null
     private var controllerRef: MediaController? = null
     private val handler by lazy { Handler(Looper.getMainLooper()) }
-    private var updaterRunning = false
+    @Volatile private var updaterRunning = false
 
     // ── Public API ───────────────────────────────────────────────────
 
@@ -75,8 +78,11 @@ object LyricInjector {
         lines: List<TimedLine>,
         trans: Map<Int, String> = emptyMap()
     ) {
-        lyrics = lines
-        translations = trans
+        synchronized(lock) {
+            lyrics = lines
+            translations = trans
+            lastLyricLine = null
+        }
         Log.d(TAG, "Loaded ${lines.size} lines, ${trans.size} translations")
         if (lines.isNotEmpty()) startLyricUpdater()
     }
@@ -106,22 +112,27 @@ object LyricInjector {
                         val songKey = "$title|$artist"
                         if (songKey != currentSongKey) {
                             currentSongKey = songKey
-                            lyrics = emptyList()
-                            translations = emptyMap()
-                            lastLyricLine = null
+                            synchronized(lock) {
+                                lyrics = emptyList()
+                                translations = emptyMap()
+                                lastLyricLine = null
+                            }
                             stopLyricUpdater()
                         }
                         originalTitle = title
                     }
 
                     // If lyrics are active, overwrite title with current lyric
-                    if (lyrics.isNotEmpty() && lastLyricLine != null) {
+                    val currentLyricLine = synchronized(lock) {
+                        if (lyrics.isNotEmpty()) lastLyricLine else null
+                    }
+                    if (currentLyricLine != null) {
                         try {
                             val bundle = ReflectUtils.getField(metadata, "mBundle")
                                     as android.os.Bundle
-                            bundle.putString(MediaMetadata.METADATA_KEY_TITLE, lastLyricLine)
+                            bundle.putString(MediaMetadata.METADATA_KEY_TITLE, currentLyricLine)
                             bundle.putString(
-                                "android.media.metadata.CUSTOM_FIELD_TITLE", lastLyricLine)
+                                "android.media.metadata.CUSTOM_FIELD_TITLE", currentLyricLine)
                         } catch (_: Throwable) { }
                     }
 
@@ -185,7 +196,7 @@ object LyricInjector {
     private fun scheduleNextUpdate() {
         if (!updaterRunning) return
         val controller = controllerRef ?: return
-        val currentLyrics = lyrics
+        val currentLyrics = synchronized(lock) { lyrics }
         if (currentLyrics.isEmpty()) return
 
         val playbackState = controller.playbackState ?: return
@@ -193,7 +204,7 @@ object LyricInjector {
 
         val idx = findLyricIndex(currentLyrics, position)
         val line = if (idx >= 0) currentLyrics[idx] else null
-        val trans = if (line != null) translations[line.beginMs] else null
+        val trans = if (line != null) synchronized(lock) { translations[line.beginMs] } else null
         val lyricText = when {
             line == null -> originalTitle
             trans != null -> "${line.text}\n${trans}"
