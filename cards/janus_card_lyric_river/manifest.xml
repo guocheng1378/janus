@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Widget name="河词" frameRate="0" scaleByDensity="false" screenWidth="960" version="2"
+         useVariableUpdater="HyperMaterial,DateTime.Minute">
+  <Var name="bgmode" type="number" expression="#bgmode"/>
+  <Var name="isDeep" type="number" expression="#isDeep"/>
+  <Var name="isDisplayDefaultBg" type="number" expression="#isDisplayDefaultBg"/>
+  <Var name="lyricText" type="string" expression="@signatureText"/>
+  <Var name="textColor" type="string" expression="@textColor"/>
+  <Var name="mainColor" type="string" expression="ifelse((! strIsEmpty(@textColor)),@textColor,ifelse(#isDeep,'#ffffff','#1a1a1a'))"/>
+  <Var name="subColor" type="string" expression="ifelse(#isDeep,'#99ffffff','#991a1a1a')"/>
+  <Var name="progressColor" type="string" expression="ifelse(#isDeep,'#33ffffff','#33000000')"/>
+  <Var name="vw" type="number" expression="#view_width"/>
+  <Var name="vh" type="number" expression="#view_height"/>
+  <Var name="scale" type="number" expression="(#vw / 960)"/>
+  <Var name="marginX" type="number" expression="(50 * #scale)"/>
+  <Var name="contentW" type="number" expression="(#vw - (#marginX * 2))"/>
+  <Var name="lyricSize" type="number" expression="(48 * #scale)"/>
+  <Var name="infoSize" type="number" expression="(20 * #scale)"/>
+  <Var name="timeSize" type="number" expression="(16 * #scale)"/>
+  <Var name="font" type="string" expression="'/system/fonts/MiSansVF.ttf'"/>
+  <Var name="fontBold" type="number" expression="500"/>
+  <Var name="fontRegular" type="number" expression="400"/>
+  <Var name="timeFmt" type="string" expression="ifelse((#time_format == 1),'HH:mm','hh:mm')"/>
+  <Rectangle w="#vw" h="#vh" visibility="(#bgmode == 3)" fillColor="ifelse(#isDeep,'#000000','#ffffff')"/>
+  <Text x="#marginX" y="(30 * #scale)"
+        w="#contentW" size="#timeSize"
+        fontPath="@font" fontPathWeight="#fontRegular"
+        color="@subColor"
+        textExp="formatDate(@timeFmt,#time_sys)"
+        textAlign="left"/>
+  <Group x="#marginX" w="#contentW">
+    <Text x="0"
+          y="(#vh * 0.32)"
+          w="#contentW"
+          size="#lyricSize"
+          fontPath="@font"
+          fontPathWeight="#fontBold"
+          color="@mainColor"
+          textExp="@lyricText"
+          textAlign="center"
+          lineClamp="4"
+          multiLine="true"
+          ellipsis="true"
+          spacingMult="1.4"
+          name="lyric_main"/>
+  </Group>
+  <Rectangle x="#marginX" y="(#vh - 60 * #scale)"
+             w="#contentW" h="1"
+             fillColor="@progressColor"/>
+  <Text x="#marginX" y="(#vh - 45 * #scale)"
+        w="#contentW" size="#timeSize"
+        fontPath="@font" fontPathWeight="#fontRegular"
+        color="@subColor"
+        text="河词"
+        textAlign="right"/>
+  <FolmeState name="fade_in" alpha="200" scaleX="0.98" scaleY="0.98"/>
+  <FolmeState name="fade_out" alpha="0"/>
+  <FolmeConfig name="fade_cfg" ease="-2, 1, 0.65"/>
+  <ExternalCommands>
+    <Trigger action="init">
+      <IfCommand ifCondition="eqs(@isPreviewMode,'true')">
+        <Consequent><FrameRateCommand rate="120"/></Consequent>
+        <Alternate><FrameRateCommand rate="0"/></Alternate>
+      </IfCommand>
+    </Trigger>
+    <Trigger action="resume">
+      <FrameRateCommand rate="120"/>
+      <FolmeCommand target="lyric_main" config="'fade_cfg'" states="'fade_in'" command="to"/>
+    </Trigger>
+    <Trigger action="pause">
+      <FrameRateCommand rate="0"/>
+    </Trigger>
+  </ExternalCommands>
+</Widget>

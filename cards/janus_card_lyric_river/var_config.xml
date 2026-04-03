@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WidgetConfig version="1" des="河词卡片设置">
+  <BackgroudMode name="bgmode" displayTitle="背景" value="0" uriName="imageUri" uri="" videoName="videoUri" videoUri="" resType="0">
+    <Language displayTitle="Background" locale="en_US"/>
+    <Language displayTitle="背景" locale="zh_CN"/>
+  </BackgroudMode>
+  <OnOff name="isDeep" displayTitle="深色模式" default="1">
+    <Language displayTitle="Dark mode" locale="en_US"/>
+    <Language displayTitle="深色模式" locale="zh_CN"/>
+  </OnOff>
+</WidgetConfig>
